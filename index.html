@@ -20,6 +20,7 @@
       --accent2:   #2da653;
       --warn:      #b45309;
       --danger:    #dc2626;
+      --rover:     #1d4ed8;
       --text:      #1a1f1a;
       --muted:     #6b7a6c;
       --card-bg:   #ffffff;
@@ -61,15 +62,35 @@
       font-family: 'IBM Plex Mono', monospace;
       font-size: 11px;
       color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
 
     #last-updated { color: var(--accent2); }
 
-    .main {
+    .rover-status {
       display: flex;
-      flex: 1;
-      overflow: hidden;
+      align-items: center;
+      gap: 6px;
+      color: var(--rover);
     }
+
+    .rover-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--rover);
+      transform: rotate(45deg);
+      animation: pulse 2s infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.35; }
+    }
+
+    .main { display: flex; flex: 1; overflow: hidden; }
 
     /* LEFT PANEL */
     .sidebar {
@@ -97,14 +118,55 @@
       margin-bottom: 4px;
     }
 
-    .node-count {
-      font-size: 13px;
-      color: var(--text);
+    .node-count { font-size: 13px; color: var(--text); }
+    .node-count span { color: var(--accent); font-weight: 500; }
+
+    /* Rover summary card in sidebar */
+    .rover-card {
+      margin: 12px 12px 0;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 12px 14px;
+      flex-shrink: 0;
     }
 
-    .node-count span {
-      color: var(--accent);
+    .rover-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .rover-card-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
       font-weight: 500;
+      color: var(--rover);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .rover-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .rover-metric { display: flex; flex-direction: column; gap: 1px; }
+
+    .rover-metric-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #6b7a6c;
+    }
+
+    .rover-metric-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--rover);
     }
 
     .nodes-list {
@@ -125,7 +187,6 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 14px 16px;
-      cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
       text-decoration: none;
       display: block;
@@ -133,7 +194,6 @@
     }
 
     .node-card:hover { border-color: var(--accent); background: #f0f7f2; }
-    .node-card.active { border-color: var(--accent); background: #e8f5ed; }
 
     .node-card-header {
       display: flex;
@@ -166,17 +226,7 @@
       animation: pulse 2s infinite;
     }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    .node-metrics {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
+    .node-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .metric { display: flex; flex-direction: column; gap: 2px; }
 
     .metric-label {
@@ -187,52 +237,22 @@
       color: var(--muted);
     }
 
-    .metric-value {
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--text);
-      line-height: 1;
-    }
-
-    .metric-value.insects {
-      color: var(--accent);
-      font-family: 'IBM Plex Mono', monospace;
-    }
-
+    .metric-value { font-size: 16px; font-weight: 500; color: var(--text); line-height: 1; }
+    .metric-value.insects { color: var(--accent); font-family: 'IBM Plex Mono', monospace; }
     .metric-unit { font-size: 10px; color: var(--muted); margin-left: 2px; }
+    .metric-sub { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); }
 
-    .metric-sub {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px;
-      color: var(--muted);
-    }
-
-    /* GPS location badge on node card */
     .node-location-badge {
       margin-top: 10px;
       font-family: 'IBM Plex Mono', monospace;
       font-size: 9px;
       color: var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 5px;
     }
 
     .node-location-badge.no-location { color: var(--warn); }
 
-    .battery-bar {
-      margin-top: 10px;
-      height: 3px;
-      background: var(--border);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .battery-fill {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 0.4s;
-    }
+    .battery-bar { margin-top: 10px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .battery-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
 
     .view-detail-btn {
       margin-top: 12px;
@@ -266,7 +286,7 @@
       font-size: 11px;
     }
 
-    /* RIGHT MAP */
+    /* MAP */
     .map-container { flex: 1; position: relative; }
     #map-view { width: 100%; height: 100%; }
 
@@ -286,14 +306,65 @@
       box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     }
 
-    .map-overlay strong {
-      color: var(--accent);
-      display: block;
-      margin-bottom: 2px;
-      font-size: 11px;
+    .map-overlay strong { color: var(--accent); display: block; margin-bottom: 2px; font-size: 11px; }
+
+    /* Map legend */
+    .map-legend {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
-    /* No-location warning banner */
+    .legend-item { display: flex; align-items: center; gap: 8px; }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #dc2626;
+      border: 2px solid white;
+      box-shadow: 0 0 0 1px #dc2626;
+      flex-shrink: 0;
+    }
+
+    .legend-diamond {
+      width: 10px;
+      height: 10px;
+      background: var(--rover);
+      transform: rotate(45deg);
+      border: 1.5px solid white;
+      box-shadow: 0 0 0 1px var(--rover);
+      flex-shrink: 0;
+    }
+
+    .legend-dash {
+      width: 18px;
+      height: 2px;
+      border-top: 2px dashed var(--rover);
+      flex-shrink: 0;
+    }
+
+    .legend-circle {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(29, 78, 216, 0.12);
+      border: 1.5px dashed rgba(29, 78, 216, 0.4);
+      flex-shrink: 0;
+    }
+
     .no-location-banner {
       position: absolute;
       bottom: 16px;
@@ -305,7 +376,6 @@
       font-size: 11px;
       padding: 8px 16px;
       border-radius: 6px;
-      backdrop-filter: blur(8px);
       pointer-events: none;
       display: none;
     }
@@ -315,31 +385,70 @@
 
 <header>
   <div class="logo">SmartTrap // Scout Network</div>
-  <div class="header-meta">Last sync: <span id="last-updated">—</span></div>
+  <div class="header-meta">
+    <div class="rover-status">
+      <div class="rover-dot"></div>
+      <span id="rover-header-status">Rover: loading...</span>
+    </div>
+    Last sync: <span id="last-updated">—</span>
+  </div>
 </header>
 
 <div class="main">
 
-  <!-- LEFT: Node Cards -->
   <div class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-title">Field Nodes</div>
       <div class="node-count"><span id="node-count">—</span> active nodes</div>
     </div>
+
+    <!-- Rover summary card -->
+    <div class="rover-card">
+      <div class="rover-card-header">
+        <div class="rover-dot"></div>
+        <div class="rover-card-title">Mobile Gateway / Rover</div>
+      </div>
+      <div class="rover-metrics">
+        <div class="rover-metric">
+          <div class="rover-metric-label">Last Position</div>
+          <div class="rover-metric-value" id="rover-last-pos">—</div>
+        </div>
+        <div class="rover-metric">
+          <div class="rover-metric-label">Last Seen</div>
+          <div class="rover-metric-value" id="rover-last-seen">—</div>
+        </div>
+        <div class="rover-metric">
+          <div class="rover-metric-label">Total Stops</div>
+          <div class="rover-metric-value" id="rover-stop-count">—</div>
+        </div>
+        <div class="rover-metric">
+          <div class="rover-metric-label">WiFi Radius</div>
+          <div class="rover-metric-value" id="rover-radius">~50m</div>
+        </div>
+      </div>
+    </div>
+
     <div class="nodes-list" id="nodes-list">
       <div class="loading-card">Loading nodes...</div>
     </div>
   </div>
 
-  <!-- RIGHT: Map -->
   <div class="map-container">
     <div id="map-view"></div>
     <div class="map-overlay">
       <strong>Central California</strong>
       Almond orchard monitoring
     </div>
+
+    <div class="map-legend">
+      <div class="legend-item"><div class="legend-dot"></div> Trap node</div>
+      <div class="legend-item"><div class="legend-diamond"></div> Rover (current)</div>
+      <div class="legend-item"><div class="legend-dash"></div> Rover path</div>
+      <div class="legend-item"><div class="legend-circle"></div> WiFi detection radius</div>
+    </div>
+
     <div class="no-location-banner" id="no-location-banner">
-      ⚠ Some nodes have no GPS coordinates set — visit node detail to add them
+      ⚠ Some nodes have no GPS coordinates — visit node detail to add them
     </div>
   </div>
 
@@ -350,20 +459,20 @@
   const SUPABASE_KEY = "sb_publishable_e-UEF6y_4kk-QSFb7CfzHQ_lgLVSG6l";
   const ARCGIS_KEY   = "AAPTaVBgWcwmkBkx6iqYw7uXtbQ..Osa6s3wYR1qeRc-FHJv-7xo0qGUcE_UXWBIy5Ugb6hg_DkQRKOfWMrceCvMXt_LcWmXGYoruj5TTc-rTFi58dvkeNDUw28EyxSIBq89chY_-NSW5X56boL-xg2Ikb_NuX21QzxzD4YW8w8bMDICciDZZhbfEfFdyNbrImabIrcBz3oqucBTAdiVVBM9eS9m1APnBewxY5p_D2w-KBJ0LWZyd5qqKXj6L_mqQf-5ebYhe-DILAguQGpyAAT1_EKuxh5JG";
 
-  // Default map center — used only for initial map view, not for node placement
   const DEFAULT_CENTER = [-120.93426, 37.35368];
+
+  // ── WiFi detection radius in METERS ──────────────────
+  // Adjust this to match your real-world WiFi range.
+  // Standard WiFi outdoors in open conditions: ~50-100m
+  const WIFI_RADIUS_METERS = 50;
 
   async function fetchFromSupabase(query) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${query}`, {
-      headers: {
-        "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`
-      }
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
     });
     return res.json();
   }
 
-  // Fetch all node locations from the node_locations table
   async function fetchNodeLocations() {
     const rows = await fetchFromSupabase("node_locations?select=node_id,latitude,longitude");
     const map = {};
@@ -373,8 +482,15 @@
     return map;
   }
 
+  async function fetchRoverHistory() {
+    // Fetch all rover location history, oldest first, so we can draw the path in order
+    const rows = await fetchFromSupabase(
+      "rover_location?select=latitude,longitude,timestamp&order=id.asc"
+    );
+    return Array.isArray(rows) ? rows : [];
+  }
+
   async function loadNodes() {
-    // Fetch unique node IDs and all node locations in parallel
     const [data, locationMap] = await Promise.all([
       fetchFromSupabase("trap_data?select=node_id&order=node_id"),
       fetchNodeLocations()
@@ -401,7 +517,6 @@
       nodeData.push(cardData);
     }
 
-    // Show warning banner if any nodes are missing coordinates
     if (anyMissingLocation) {
       document.getElementById("no-location-banner").style.display = "block";
     }
@@ -414,35 +529,34 @@
       `trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=timestamp_received.desc&limit=50`
     );
 
-    const latest = (type) => rows.find(r => r.event_type === type);
-    const temp     = latest("temp");
-    const humidity = latest("humidity");
-    const battery  = rows[0];
+    const latest    = (type) => rows.find(r => r.event_type === type);
+    const temp      = latest("temp");
+    const humidity  = latest("humidity");
+    const battery   = rows[0];
 
-    const added   = rows.filter(r => r.event_type === "beetle_count_added").length;
-    const removed = rows.filter(r => r.event_type === "beetle_count_removed").length;
+    const added     = rows.filter(r => r.event_type === "beetle_count_added").length;
+    const removed   = rows.filter(r => r.event_type === "beetle_count_removed").length;
     const insectVal = added - removed;
 
-    const toF = c => ((c * 9/5) + 32).toFixed(1);
+    const toF     = c => ((c * 9/5) + 32).toFixed(1);
     const tempVal = temp     ? toF(parseFloat(temp.event_value))           : "—";
     const humVal  = humidity ? parseFloat(humidity.event_value).toFixed(1) : "—";
     const battRaw = battery  ? parseFloat(battery.battery_voltage)          : null;
     const battVal = (battRaw !== null && battRaw > 0) ? battRaw : null;
-    const rssi     = battery  ? battery.signal_strength_rssi                 : null;
-    const lastSeen = battery  ? new Date(battery.timestamp_received).toLocaleTimeString() : "—";
+    const rssi    = battery  ? battery.signal_strength_rssi                 : null;
+    const lastSeen = battery ? new Date(battery.timestamp_received).toLocaleTimeString() : "—";
 
     let battColor = "#4ade80";
-    let battPct = 100;
+    let battPct   = 100;
     if (battVal !== null) {
       battPct = Math.min(100, Math.max(0, ((battVal - 3.3) / (4.2 - 3.3)) * 100));
       if (battPct < 20) battColor = "#f87171";
       else if (battPct < 40) battColor = "#fbbf24";
     }
 
-    // Location badge — shows coords if set, warning if not
     const locationBadgeHtml = coords
       ? `<div class="node-location-badge">📍 ${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}</div>`
-      : `<div class="node-location-badge no-location">⚠ No location set — add in node detail</div>`;
+      : `<div class="node-location-badge no-location">⚠ No location set</div>`;
 
     const card = document.createElement("div");
     card.className = "node-card";
@@ -491,13 +605,14 @@
     "esri/Map",
     "esri/views/MapView",
     "esri/Graphic",
-    "esri/layers/GraphicsLayer"
-  ], function(esriConfig, Map, MapView, Graphic, GraphicsLayer) {
+    "esri/layers/GraphicsLayer",
+    "esri/geometry/Circle",
+    "esri/geometry/Polyline"
+  ], function(esriConfig, Map, MapView, Graphic, GraphicsLayer, Circle, Polyline) {
 
     esriConfig.apiKey = ARCGIS_KEY;
 
-    const map = new Map({ basemap: "satellite" });
-
+    const map  = new Map({ basemap: "satellite" });
     const view = new MapView({
       container: "map-view",
       map: map,
@@ -506,45 +621,149 @@
       ui: { components: ["zoom"] }
     });
 
-    const graphicsLayer = new GraphicsLayer();
-    map.add(graphicsLayer);
+    // Separate layers so rover elements sit on top of trap markers
+    const trapLayer  = new GraphicsLayer();
+    const roverLayer = new GraphicsLayer();
+    map.addMany([trapLayer, roverLayer]);
 
-    loadNodes().then(nodes => {
+    // Load trap nodes and rover history in parallel
+    Promise.all([loadNodes(), fetchRoverHistory()]).then(([nodes, roverHistory]) => {
+
+      // ── TRAP NODE MARKERS ──────────────────────────────
       const placedNodes = nodes.filter(n => n.coords !== null);
-
       placedNodes.forEach(node => {
-        const point = {
-          type: "point",
-          longitude: node.coords[0],
-          latitude:  node.coords[1]
-        };
-
-        const markerSymbol = {
-          type: "simple-marker",
-          color: [220, 38, 38, 0.95],
-          outline: { color: [255, 255, 255], width: 2 },
-          size: "16px"
-        };
-
-        const popupTemplate = {
-          title: node.nodeId,
-          content: `
-            <b>Insects:</b> ${node.insectVal}<br>
-            <b>Temp:</b> ${node.tempVal} °F<br>
-            <b>Humidity:</b> ${node.humVal}%<br>
-            <a href="detail.html?node=${encodeURIComponent(node.nodeId)}" style="color:#dc2626">View detail →</a>
-          `
-        };
-
-        graphicsLayer.add(new Graphic({ geometry: point, symbol: markerSymbol, popupTemplate }));
+        trapLayer.add(new Graphic({
+          geometry: { type: "point", longitude: node.coords[0], latitude: node.coords[1] },
+          symbol: {
+            type: "simple-marker",
+            color: [220, 38, 38, 0.95],
+            outline: { color: [255, 255, 255], width: 2 },
+            size: "16px"
+          },
+          popupTemplate: {
+            title: node.nodeId,
+            content: `
+              <b>Insects:</b> ${node.insectVal}<br>
+              <b>Temp:</b> ${node.tempVal} °F<br>
+              <b>Humidity:</b> ${node.humVal}%<br>
+              <a href="detail.html?node=${encodeURIComponent(node.nodeId)}" style="color:#dc2626">View detail →</a>
+            `
+          }
+        }));
       });
 
-      // If we have nodes with coordinates, re-center map on the first one
-      if (placedNodes.length > 0) {
-        view.center = placedNodes[0].coords;
+      if (placedNodes.length > 0) view.center = placedNodes[0].coords;
+
+      // ── ROVER PATH + MARKERS ───────────────────────────
+      if (roverHistory.length === 0) {
+        document.getElementById("rover-header-status").textContent = "Rover: no data yet";
+        document.getElementById("rover-last-pos").textContent  = "—";
+        document.getElementById("rover-last-seen").textContent = "—";
+        document.getElementById("rover-stop-count").textContent = "0";
+        return;
       }
-    });
-  });
+
+      // Update sidebar rover summary
+      const latest = roverHistory[roverHistory.length - 1];
+      const latestLat = parseFloat(latest.latitude);
+      const latestLng = parseFloat(latest.longitude);
+      const latestTime = new Date(latest.timestamp).toLocaleString();
+
+      document.getElementById("rover-header-status").textContent =
+        `Rover: ${latestLat.toFixed(4)}, ${latestLng.toFixed(4)}`;
+      document.getElementById("rover-last-pos").textContent =
+        `${latestLat.toFixed(4)}, ${latestLng.toFixed(4)}`;
+      document.getElementById("rover-last-seen").textContent = latestTime;
+      document.getElementById("rover-stop-count").textContent = roverHistory.length;
+
+      // ── DASHED PATH LINE ──────────────────────────────
+      // Build a polyline from all historical positions
+      if (roverHistory.length > 1) {
+        const pathCoords = roverHistory.map(r => [parseFloat(r.longitude), parseFloat(r.latitude)]);
+        roverLayer.add(new Graphic({
+          geometry: new Polyline({ paths: [pathCoords], spatialReference: { wkid: 4326 } }),
+          symbol: {
+            type: "simple-line",
+            color: [29, 78, 216, 0.7],   // Blue, slightly transparent
+            width: 2,
+            style: "dash"                 // Dashed line
+          }
+        }));
+      }
+
+      // ── WIFI RADIUS CIRCLES (one per historical stop) ──
+      // Each stop gets a faint radius circle showing detection range
+      roverHistory.forEach((stop, index) => {
+        const isLatest = index === roverHistory.length - 1;
+        const stopLat  = parseFloat(stop.latitude);
+        const stopLng  = parseFloat(stop.longitude);
+
+        // Draw a filled circle representing WiFi range
+        // Older stops are more faded, latest stop is most visible
+        const opacity = isLatest ? 0.15 : 0.06;
+        const outlineOpacity = isLatest ? 0.5 : 0.2;
+
+        roverLayer.add(new Graphic({
+          geometry: new Circle({
+            center: { type: "point", longitude: stopLng, latitude: stopLat },
+            radius: WIFI_RADIUS_METERS,
+            radiusUnit: "meters",
+            spatialReference: { wkid: 4326 }
+          }),
+          symbol: {
+            type: "simple-fill",
+            color: [29, 78, 216, opacity],
+            outline: {
+              color: [29, 78, 216, outlineOpacity],
+              width: 1,
+              style: "dash"
+            }
+          }
+        }));
+      });
+
+      // ── HISTORICAL STOP MARKERS (small diamonds) ──────
+      // Past positions — smaller, faded
+      roverHistory.slice(0, -1).forEach(stop => {
+        roverLayer.add(new Graphic({
+          geometry: { type: "point", longitude: parseFloat(stop.longitude), latitude: parseFloat(stop.latitude) },
+          symbol: {
+            type: "simple-marker",
+            style: "diamond",
+            color: [29, 78, 216, 0.4],
+            outline: { color: [255, 255, 255, 0.6], width: 1 },
+            size: "10px"
+          },
+          popupTemplate: {
+            title: "Rover — Past Position",
+            content: `<b>Time:</b> ${new Date(stop.timestamp).toLocaleString()}<br>
+                      <b>Lat:</b> ${parseFloat(stop.latitude).toFixed(6)}<br>
+                      <b>Lng:</b> ${parseFloat(stop.longitude).toFixed(6)}`
+          }
+        }));
+      });
+
+      // ── CURRENT ROVER MARKER (large, bright diamond) ──
+      roverLayer.add(new Graphic({
+        geometry: { type: "point", longitude: latestLng, latitude: latestLat },
+        symbol: {
+          type: "simple-marker",
+          style: "diamond",
+          color: [29, 78, 216, 0.95],
+          outline: { color: [255, 255, 255], width: 2 },
+          size: "18px"
+        },
+        popupTemplate: {
+          title: "Rover — Current Position",
+          content: `<b>Last seen:</b> ${latestTime}<br>
+                    <b>Lat:</b> ${latestLat.toFixed(6)}<br>
+                    <b>Lng:</b> ${latestLng.toFixed(6)}<br>
+                    <b>WiFi radius:</b> ~${WIFI_RADIUS_METERS}m`
+        }
+      }));
+
+    }); // end Promise.all
+  }); // end require
 </script>
 </body>
 </html>
