@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartTrap Scout Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css"/>
+  <script src="https://js.arcgis.com/4.29/"></script>
+
+  <style>
+    :root {
+      --bg:        #f5f6f4;
+      --surface:   #ffffff;
+      --border:    #e2e5e2;
+      --accent:    #1a7a3c;
+      --accent2:   #2da653;
+      --warn:      #b45309;
+      --danger:    #dc2626;
+      --text:      #1a1f1a;
+      --muted:     #6b7a6c;
+      --card-bg:   #ffffff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 52px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .header-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    #last-updated { color: var(--accent2); }
+
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* LEFT PANEL */
+    .sidebar {
+      width: 300px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .sidebar-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .node-count {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .node-count span {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .nodes-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nodes-list::-webkit-scrollbar { width: 4px; }
+    .nodes-list::-webkit-scrollbar-track { background: transparent; }
+    .nodes-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .node-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      text-decoration: none;
+      display: block;
+      color: inherit;
+    }
+
+    .node-card:hover { border-color: var(--accent); background: #f0f7f2; }
+    .node-card.active { border-color: var(--accent); background: #e8f5ed; }
+
+    .node-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .node-id {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    .node-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .node-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric { display: flex; flex-direction: column; gap: 2px; }
+
+    .metric-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    .metric-value {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .metric-value.insects {
+      color: var(--accent);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .metric-unit { font-size: 10px; color: var(--muted); margin-left: 2px; }
+
+    .metric-sub {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* GPS location badge on node card */
+    .node-location-badge {
+      margin-top: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .node-location-badge.no-location { color: var(--warn); }
+
+    .battery-bar {
+      margin-top: 10px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .battery-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.4s;
+    }
+
+    .view-detail-btn {
+      margin-top: 12px;
+      width: 100%;
+      padding: 7px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+      text-decoration: none;
+      display: block;
+    }
+
+    .view-detail-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .loading-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+    }
+
+    /* RIGHT MAP */
+    .map-container { flex: 1; position: relative; }
+    #map-view { width: 100%; height: 100%; }
+
+    .map-overlay {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .map-overlay strong {
+      color: var(--accent);
+      display: block;
+      margin-bottom: 2px;
+      font-size: 11px;
+    }
+
+    /* No-location warning banner */
+    .no-location-banner {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(180, 83, 9, 0.92);
+      color: #fff;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SmartTrap // Scout Network</div>
+  <div class="header-meta">Last sync: <span id="last-updated">—</span></div>
+</header>
+
+<div class="main">
+
+  <!-- LEFT: Node Cards -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Field Nodes</div>
+      <div class="node-count"><span id="node-count">—</span> active nodes</div>
+    </div>
+    <div class="nodes-list" id="nodes-list">
+      <div class="loading-card">Loading nodes...</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Map -->
+  <div class="map-container">
+    <div id="map-view"></div>
+    <div class="map-overlay">
+      <strong>Central California</strong>
+      Almond orchard monitoring
+    </div>
+    <div class="no-location-banner" id="no-location-banner">
+      ⚠ Some nodes have no GPS coordinates set — visit node detail to add them
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = "https://nqhmvymrikjnkvtxtcst.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_e-UEF6y_4kk-QSFb7CfzHQ_lgLVSG6l";
+  const ARCGIS_KEY   = "AAPTaVBgWcwmkBkx6iqYw7uXtbQ..Osa6s3wYR1qeRc-FHJv-7xo0qGUcE_UXWBIy5Ugb6hg_DkQRKOfWMrceCvMXt_LcWmXGYoruj5TTc-rTFi58dvkeNDUw28EyxSIBq89chY_-NSW5X56boL-xg2Ikb_NuX21QzxzD4YW8w8bMDICciDZZhbfEfFdyNbrImabIrcBz3oqucBTAdiVVBM9eS9m1APnBewxY5p_D2w-KBJ0LWZyd5qqKXj6L_mqQf-5ebYhe-DILAguQGpyAAT1_EKuxh5JG";
+
+  // Default map center — used only for initial map view, not for node placement
+  const DEFAULT_CENTER = [-120.93426, 37.35368];
+
+  async function fetchFromSupabase(query) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${query}`, {
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    return res.json();
+  }
+
+  // Fetch all node locations from the node_locations table
+  async function fetchNodeLocations() {
+    const rows = await fetchFromSupabase("node_locations?select=node_id,latitude,longitude");
+    const map = {};
+    if (Array.isArray(rows)) {
+      rows.forEach(r => { map[r.node_id] = [parseFloat(r.longitude), parseFloat(r.latitude)]; });
+    }
+    return map;
+  }
+
+  async function loadNodes() {
+    // Fetch unique node IDs and all node locations in parallel
+    const [data, locationMap] = await Promise.all([
+      fetchFromSupabase("trap_data?select=node_id&order=node_id"),
+      fetchNodeLocations()
+    ]);
+
+    const nodeIds = [...new Set(data.map(r => r.node_id).filter(Boolean))];
+    document.getElementById("node-count").textContent = nodeIds.length;
+
+    const list = document.getElementById("nodes-list");
+    list.innerHTML = "";
+
+    if (nodeIds.length === 0) {
+      list.innerHTML = '<div class="loading-card">No nodes found in database.</div>';
+      return [];
+    }
+
+    const nodeData = [];
+    let anyMissingLocation = false;
+
+    for (const nodeId of nodeIds) {
+      const coords = locationMap[nodeId] || null;
+      if (!coords) anyMissingLocation = true;
+      const cardData = await buildNodeCard(nodeId, coords);
+      nodeData.push(cardData);
+    }
+
+    // Show warning banner if any nodes are missing coordinates
+    if (anyMissingLocation) {
+      document.getElementById("no-location-banner").style.display = "block";
+    }
+
+    return nodeData;
+  }
+
+  async function buildNodeCard(nodeId, coords) {
+    const rows = await fetchFromSupabase(
+      `trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=timestamp_received.desc&limit=50`
+    );
+
+    const latest = (type) => rows.find(r => r.event_type === type);
+    const temp     = latest("temp");
+    const humidity = latest("humidity");
+    const battery  = rows[0];
+
+    const added   = rows.filter(r => r.event_type === "beetle_count_added").length;
+    const removed = rows.filter(r => r.event_type === "beetle_count_removed").length;
+    const insectVal = added - removed;
+
+    const toF = c => ((c * 9/5) + 32).toFixed(1);
+    const tempVal = temp     ? toF(parseFloat(temp.event_value))           : "—";
+    const humVal  = humidity ? parseFloat(humidity.event_value).toFixed(1) : "—";
+    const battRaw = battery  ? parseFloat(battery.battery_voltage)          : null;
+    const battVal = (battRaw !== null && battRaw > 0) ? battRaw : null;
+    const rssi     = battery  ? battery.signal_strength_rssi                 : null;
+    const lastSeen = battery  ? new Date(battery.timestamp_received).toLocaleTimeString() : "—";
+
+    let battColor = "#4ade80";
+    let battPct = 100;
+    if (battVal !== null) {
+      battPct = Math.min(100, Math.max(0, ((battVal - 3.3) / (4.2 - 3.3)) * 100));
+      if (battPct < 20) battColor = "#f87171";
+      else if (battPct < 40) battColor = "#fbbf24";
+    }
+
+    // Location badge — shows coords if set, warning if not
+    const locationBadgeHtml = coords
+      ? `<div class="node-location-badge">📍 ${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}</div>`
+      : `<div class="node-location-badge no-location">⚠ No location set — add in node detail</div>`;
+
+    const card = document.createElement("div");
+    card.className = "node-card";
+    card.innerHTML = `
+      <div class="node-card-header">
+        <div class="node-id">${nodeId}</div>
+        <div class="node-status"><div class="status-dot"></div>LIVE</div>
+      </div>
+      <div class="node-metrics">
+        <div class="metric">
+          <div class="metric-label">Temperature</div>
+          <div class="metric-value">${tempVal}<span class="metric-unit">${temp ? '°F' : ''}</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Humidity</div>
+          <div class="metric-value">${humVal}<span class="metric-unit">${humidity ? '%' : ''}</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Insects</div>
+          <div class="metric-value insects">${insectVal}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Battery</div>
+          <div class="metric-value">${battVal !== null ? battVal.toFixed(2) : '—'}<span class="metric-unit">${battVal !== null ? 'V' : '(not wired)'}</span></div>
+          <div class="metric-sub">RSSI: ${rssi !== null ? rssi + ' dBm' : '—'}</div>
+        </div>
+      </div>
+      ${locationBadgeHtml}
+      <div class="battery-bar">
+        <div class="battery-fill" style="width:${battPct}%;background:${battColor}"></div>
+      </div>
+      <a class="view-detail-btn" href="detail.html?node=${encodeURIComponent(nodeId)}">
+        View detail →
+      </a>
+    `;
+
+    document.getElementById("nodes-list").appendChild(card);
+    document.getElementById("last-updated").textContent = lastSeen;
+
+    return { nodeId, coords, insectVal, tempVal, humVal };
+  }
+
+  // ─── ARCGIS MAP ───────────────────────────────────────────
+  require([
+    "esri/config",
+    "esri/Map",
+    "esri/views/MapView",
+    "esri/Graphic",
+    "esri/layers/GraphicsLayer"
+  ], function(esriConfig, Map, MapView, Graphic, GraphicsLayer) {
+
+    esriConfig.apiKey = ARCGIS_KEY;
+
+    const map = new Map({ basemap: "satellite" });
+
+    const view = new MapView({
+      container: "map-view",
+      map: map,
+      center: DEFAULT_CENTER,
+      zoom: 17,
+      ui: { components: ["zoom"] }
+    });
+
+    const graphicsLayer = new GraphicsLayer();
+    map.add(graphicsLayer);
+
+    loadNodes().then(nodes => {
+      const placedNodes = nodes.filter(n => n.coords !== null);
+
+      placedNodes.forEach(node => {
+        const point = {
+          type: "point",
+          longitude: node.coords[0],
+          latitude:  node.coords[1]
+        };
+
+        const markerSymbol = {
+          type: "simple-marker",
+          color: [220, 38, 38, 0.95],
+          outline: { color: [255, 255, 255], width: 2 },
+          size: "16px"
+        };
+
+        const popupTemplate = {
+          title: node.nodeId,
+          content: `
+            <b>Insects:</b> ${node.insectVal}<br>
+            <b>Temp:</b> ${node.tempVal} °F<br>
+            <b>Humidity:</b> ${node.humVal}%<br>
+            <a href="detail.html?node=${encodeURIComponent(node.nodeId)}" style="color:#dc2626">View detail →</a>
+          `
+        };
+
+        graphicsLayer.add(new Graphic({ geometry: point, symbol: markerSymbol, popupTemplate }));
+      });
+
+      // If we have nodes with coordinates, re-center map on the first one
+      if (placedNodes.length > 0) {
+        view.center = placedNodes[0].coords;
+      }
+    });
+  });
+</script>
+</body>
+</html>
