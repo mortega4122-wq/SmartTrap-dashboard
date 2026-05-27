@@ -598,13 +598,13 @@
     const rawTempData = rows
       .filter(r => r.event_type === "temp" && r.event_value !== null)
       .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
-      .map(r => ({ x: new Date(r.event_timestamp), y: toF(parseFloat(r.event_value)) }));
+      new Date(r.event_timestamp.replace(' ', 'T'))
     const tempData = rollingAverage(rawTempData, 5);
 
     const rawHumData = rows
       .filter(r => r.event_type === "humidity" && r.event_value !== null)
       .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
-      .map(r => ({ x: new Date(r.event_timestamp), y: parseFloat(r.event_value) }));
+      new Date(r.event_timestamp.replace(' ', 'T'))
     const humData = rollingAverage(rawHumData, 5);
 
     const addedRows   = rows.filter(r => r.event_type === "beetle_count_added");
@@ -622,7 +622,7 @@
     const battData = rows
       .filter(r => r.battery_voltage !== null && parseFloat(r.battery_voltage) > 0)
       .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
-      .map(r => ({ x: new Date(r.event_timestamp), y: parseFloat(r.battery_voltage) }));
+      new Date(r.event_timestamp.replace(' ', 'T'))
 
     if (tempData.length)
       document.getElementById("stat-temp").innerHTML =
