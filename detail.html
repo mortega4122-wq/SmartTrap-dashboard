@@ -596,33 +596,33 @@
       `First seen: ${firstSeen} · Last seen: ${lastSeen} · ${rows.length} records`;
 
     const rawTempData = rows
-      .filter(r => r.event_type === "temp" && r.event_value !== null)
-      .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
-      new Date(r.event_timestamp.replace(' ', 'T'))
-    const tempData = rollingAverage(rawTempData, 5);
+  .filter(r => r.event_type === "temp" && r.event_value !== null)
+  .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
+  .map(r => ({ x: new Date(r.event_timestamp.replace(' ', 'T')), y: toF(parseFloat(r.event_value)) }));
+const tempData = rollingAverage(rawTempData, 5);
 
-    const rawHumData = rows
-      .filter(r => r.event_type === "humidity" && r.event_value !== null)
-      .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
-      new Date(r.event_timestamp.replace(' ', 'T'))
-    const humData = rollingAverage(rawHumData, 5);
+const rawHumData = rows
+  .filter(r => r.event_type === "humidity" && r.event_value !== null)
+  .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
+  .map(r => ({ x: new Date(r.event_timestamp.replace(' ', 'T')), y: parseFloat(r.event_value) }));
+const humData = rollingAverage(rawHumData, 5);
 
-    const addedRows   = rows.filter(r => r.event_type === "beetle_count_added");
-    const removedRows = rows.filter(r => r.event_type === "beetle_count_removed");
-    let runningTotal  = 0;
-    const allInsectRows = rows
-      .filter(r => r.event_type === "beetle_count_added" || r.event_type === "beetle_count_removed")
-      .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp));
-    const insectData = allInsectRows.map(r => {
-      runningTotal += r.event_type === "beetle_count_added" ? 1 : -1;
-      return { x: new Date(r.event_timestamp), y: runningTotal };
-    });
-    const totalInsects = addedRows.length - removedRows.length;
+const addedRows   = rows.filter(r => r.event_type === "beetle_count_added");
+const removedRows = rows.filter(r => r.event_type === "beetle_count_removed");
+let runningTotal  = 0;
+const allInsectRows = rows
+  .filter(r => r.event_type === "beetle_count_added" || r.event_type === "beetle_count_removed")
+  .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp));
+const insectData = allInsectRows.map(r => {
+  runningTotal += r.event_type === "beetle_count_added" ? 1 : -1;
+  return { x: new Date(r.event_timestamp.replace(' ', 'T')), y: runningTotal };
+});
+const totalInsects = addedRows.length - removedRows.length;
 
-    const battData = rows
-      .filter(r => r.battery_voltage !== null && parseFloat(r.battery_voltage) > 0)
-      .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
-      new Date(r.event_timestamp.replace(' ', 'T'))
+const battData = rows
+  .filter(r => r.battery_voltage !== null && parseFloat(r.battery_voltage) > 0)
+  .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
+  .map(r => ({ x: new Date(r.event_timestamp.replace(' ', 'T')), y: parseFloat(r.battery_voltage) }));
 
     if (tempData.length)
       document.getElementById("stat-temp").innerHTML =
