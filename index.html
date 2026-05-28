@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SmartTrap Scout Dashboard</title>
 
+  <!-- Mobile redirect — runs before anything else renders -->
+  <script>
+    if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      window.location.replace("index-mobile.html");
+    }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 
@@ -121,7 +128,6 @@
     .node-count { font-size: 13px; color: var(--text); }
     .node-count span { color: var(--accent); font-weight: 500; }
 
-    /* Rover summary card in sidebar */
     .rover-card {
       margin: 12px 12px 0;
       background: #eff6ff;
@@ -308,7 +314,6 @@
 
     .map-overlay strong { color: var(--accent); display: block; margin-bottom: 2px; font-size: 11px; }
 
-    /* Map legend */
     .map-legend {
       position: absolute;
       bottom: 16px;
@@ -379,77 +384,6 @@
       pointer-events: none;
       display: none;
     }
-
-    /* ── MOBILE LAYOUT ── */
-    @media (max-width: 700px) {
-      body { overflow: auto; }
-
-      .main {
-        flex-direction: column;
-        overflow: auto;
-        flex: 1;
-      }
-
-      .sidebar {
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        overflow: visible;
-        /* Collapsed by default on mobile; toggled via JS */
-        max-height: 56px;
-        transition: max-height 0.3s ease;
-      }
-
-      .sidebar.expanded { max-height: 9999px; }
-
-      .sidebar-header {
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 20px;
-        border-bottom: none;
-      }
-
-      .sidebar-toggle {
-        font-family: 'IBM Plex Mono', monospace;
-        font-size: 11px;
-        color: var(--muted);
-        display: none;
-      }
-
-      /* Show the toggle arrow only on mobile */
-      @media (max-width: 700px) {
-        .sidebar-toggle { display: block; }
-      }
-
-      .sidebar-header.collapsed-indicator .sidebar-toggle::after { content: " ▼"; }
-      .sidebar.expanded .sidebar-header .sidebar-toggle::after    { content: " ▲"; }
-
-      .map-container {
-        /* On mobile, give the map a fixed sensible height so the panel below is reachable */
-        height: 55vw;
-        min-height: 240px;
-        max-height: 380px;
-        flex: none;
-      }
-
-      #map-view { width: 100%; height: 100%; }
-
-      /* Move the overlay out of the way of zoom buttons on mobile */
-      .map-overlay { top: 8px; right: 8px; font-size: 9px; padding: 6px 10px; }
-
-      /* Legend shrinks on mobile */
-      .map-legend { font-size: 9px; padding: 8px 10px; gap: 4px; }
-
-      /* Node cards sit in a normal scrollable list below the map */
-      .nodes-list { padding: 10px; }
-
-      /* Header: hide "Last sync" text on very small screens to save space */
-      .header-meta { font-size: 10px; gap: 8px; }
-
-      header { padding: 0 14px; }
-    }
   </style>
 </head>
 <body>
@@ -467,16 +401,12 @@
 
 <div class="main">
 
-  <div class="sidebar" id="sidebar">
-    <div class="sidebar-header" id="sidebar-header">
-      <div>
-        <div class="sidebar-title">Field Nodes</div>
-        <div class="node-count"><span id="node-count">—</span> active nodes</div>
-      </div>
-      <span class="sidebar-toggle" id="sidebar-toggle">Show ▼</span>
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Field Nodes</div>
+      <div class="node-count"><span id="node-count">—</span> active nodes</div>
     </div>
 
-    <!-- Rover summary card -->
     <div class="rover-card">
       <div class="rover-card-header">
         <div class="rover-dot"></div>
@@ -533,42 +463,22 @@
   const SUPABASE_KEY = "sb_publishable_e-UEF6y_4kk-QSFb7CfzHQ_lgLVSG6l";
   const ARCGIS_KEY   = "AAPTaVBgWcwmkBkx6iqYw7uXtbQ..Osa6s3wYR1qeRc-FHJv-7xo0qGUcE_UXWBIy5Ugb6hg_DkQRKOfWMrceCvMXt_LcWmXGYoruj5TTc-rTFi58dvkeNDUw28EyxSIBq89chY_-NSW5X56boL-xg2Ikb_NuX21QzxzD4YW8w8bMDICciDZZhbfEfFdyNbrImabIrcBz3oqucBTAdiVVBM9eS9m1APnBewxY5p_D2w-KBJ0LWZyd5qqKXj6L_mqQf-5ebYhe-DILAguQGpyAAT1_EKuxh5JG";
 
-  const DEFAULT_CENTER = [-120.93426, 37.35368];
-
-  // ── WiFi detection radius in METERS ──────────────────
-  // Adjust this to match your real-world WiFi range.
-  // Standard WiFi outdoors in open conditions: ~50-100m
+  const DEFAULT_CENTER     = [-120.93426, 37.35368];
   const WIFI_RADIUS_METERS = 50;
 
-  // ── MOBILE SIDEBAR TOGGLE ────────────────────────────
-  (function() {
-    const sidebar = document.getElementById("sidebar");
-    const header  = document.getElementById("sidebar-header");
-    const toggle  = document.getElementById("sidebar-toggle");
-    if (!header || !toggle) return;
-    header.addEventListener("click", () => {
-      const expanded = sidebar.classList.toggle("expanded");
-      toggle.textContent = expanded ? "Hide ▲" : "Show ▼";
-    });
-  })();
-
-  // ── REVERSE GEOCODE: nearest city from coordinates ───
+  // ── REVERSE GEOCODE ──────────────────────────────────
   async function fetchNearestCity(lat, lng) {
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
-      const res = await fetch(url, { headers: { "Accept-Language": "en-US,en" } });
+      const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers: { "Accept-Language": "en-US,en" } });
       const data = await res.json();
       const addr = data.address || {};
-      // Prefer town > village > city > county
       const place = addr.town || addr.village || addr.city || addr.county || null;
       const state = addr.state_code || addr.state || "";
-      // Abbreviate state to 2-letter code if longer
       const stateAbbr = state.length > 2 ? state.slice(0, 2).toUpperCase() : state.toUpperCase();
       return place ? `${place}, ${stateAbbr}` : null;
-    } catch (e) {
-      return null;
-    }
+    } catch { return null; }
   }
+
   async function fetchFromSupabase(query) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${query}`, {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
@@ -586,10 +496,7 @@
   }
 
   async function fetchRoverHistory() {
-    // Fetch all rover location history, oldest first, so we can draw the path in order
-    const rows = await fetchFromSupabase(
-      "rover_location?select=latitude,longitude,timestamp&order=id.asc"
-    );
+    const rows = await fetchFromSupabase("rover_location?select=latitude,longitude,timestamp&order=id.asc");
     return Array.isArray(rows) ? rows : [];
   }
 
@@ -641,13 +548,13 @@
     const removed   = rows.filter(r => r.event_type === "beetle_count_removed").length;
     const insectVal = added - removed;
 
-    const toF     = c => ((c * 9/5) + 32).toFixed(1);
-    const tempVal = temp     ? toF(parseFloat(temp.event_value))           : "—";
-    const humVal  = humidity ? parseFloat(humidity.event_value).toFixed(1) : "—";
-    const battRaw = battery  ? parseFloat(battery.battery_voltage)          : null;
-    const battVal = (battRaw !== null && battRaw > 0) ? battRaw : null;
-    const rssi    = battery  ? battery.signal_strength_rssi                 : null;
-    const lastSeen = battery ? new Date(battery.timestamp_received).toLocaleTimeString() : "—";
+    const toF      = c => ((c * 9/5) + 32).toFixed(1);
+    const tempVal  = temp     ? toF(parseFloat(temp.event_value))           : "—";
+    const humVal   = humidity ? parseFloat(humidity.event_value).toFixed(1) : "—";
+    const battRaw  = battery  ? parseFloat(battery.battery_voltage)          : null;
+    const battVal  = (battRaw !== null && battRaw > 0) ? battRaw : null;
+    const rssi     = battery  ? battery.signal_strength_rssi                 : null;
+    const lastSeen = battery  ? new Date(battery.timestamp_received).toLocaleTimeString() : "—";
 
     let battColor = "#4ade80";
     let battPct   = 100;
@@ -724,27 +631,19 @@
       ui: { components: ["zoom"] }
     });
 
-    // Separate layers so rover elements sit on top of trap markers
     const trapLayer  = new GraphicsLayer();
     const roverLayer = new GraphicsLayer();
     map.addMany([trapLayer, roverLayer]);
 
-    // Load trap nodes and rover history in parallel
     Promise.all([loadNodes(), fetchRoverHistory()]).then(([nodes, roverHistory]) => {
 
       // ── TRAP NODE MARKERS ──────────────────────────────
       const placedNodes = nodes.filter(n => n.coords !== null);
 
       placedNodes.forEach((node, index) => {
-        // Extract trailing number from node ID e.g. TRAP_NODE_001 → "1"
         const numMatch = node.nodeId.match(/(\d+)$/);
         const nodeNum  = numMatch ? String(parseInt(numMatch[1], 10)) : String(index + 1);
 
-        // Use a text symbol layered over the circle via a CIMSymbol-style workaround:
-        // ArcGIS JS 4.x supports picture markers but not easy text-on-circle,
-        // so we draw two graphics: a filled circle + a text label.
-
-        // Circle marker
         trapLayer.add(new Graphic({
           geometry: { type: "point", longitude: node.coords[0], latitude: node.coords[1] },
           symbol: {
@@ -764,7 +663,6 @@
           }
         }));
 
-        // Node number text label centred on the dot
         trapLayer.add(new Graphic({
           geometry: { type: "point", longitude: node.coords[0], latitude: node.coords[1] },
           symbol: {
@@ -784,26 +682,22 @@
         view.center = placedNodes[0].coords;
         view.zoom   = 17;
       } else if (placedNodes.length > 1) {
-        // Calculate bounding box centroid and fit extent with padding
-        const lngs = placedNodes.map(n => n.coords[0]);
-        const lats = placedNodes.map(n => n.coords[1]);
-        const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-        const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+        const lngs   = placedNodes.map(n => n.coords[0]);
+        const lats   = placedNodes.map(n => n.coords[1]);
         view.goTo({
           target: {
             type: "extent",
-            xmin: minLng, ymin: minLat,
-            xmax: maxLng, ymax: maxLat,
+            xmin: Math.min(...lngs), ymin: Math.min(...lats),
+            xmax: Math.max(...lngs), ymax: Math.max(...lats),
             spatialReference: { wkid: 4326 }
           }
         }, { animate: false }).catch(() => {});
       }
 
-      // ── REVERSE GEOCODE OVERLAY CITY NAME ────────────
+      // ── REVERSE GEOCODE CITY NAME ─────────────────────
       if (placedNodes.length > 0) {
-        // Use the centroid of all placed nodes for the lookup
-        const lngs = placedNodes.map(n => n.coords[0]);
-        const lats  = placedNodes.map(n => n.coords[1]);
+        const lngs   = placedNodes.map(n => n.coords[0]);
+        const lats   = placedNodes.map(n => n.coords[1]);
         const avgLat = lats.reduce((s, v) => s + v, 0) / lats.length;
         const avgLng = lngs.reduce((s, v) => s + v, 0) / lngs.length;
         fetchNearestCity(avgLat, avgLng).then(city => {
@@ -815,113 +709,67 @@
       // ── ROVER PATH + MARKERS ───────────────────────────
       if (roverHistory.length === 0) {
         document.getElementById("rover-header-status").textContent = "Rover: no data yet";
-        document.getElementById("rover-last-pos").textContent  = "—";
-        document.getElementById("rover-last-seen").textContent = "—";
-        document.getElementById("rover-stop-count").textContent = "0";
+        document.getElementById("rover-last-pos").textContent      = "—";
+        document.getElementById("rover-last-seen").textContent     = "—";
+        document.getElementById("rover-stop-count").textContent    = "0";
         return;
       }
 
-      // Update sidebar rover summary
-      const latest = roverHistory[roverHistory.length - 1];
-      const latestLat = parseFloat(latest.latitude);
-      const latestLng = parseFloat(latest.longitude);
+      const latest     = roverHistory[roverHistory.length - 1];
+      const latestLat  = parseFloat(latest.latitude);
+      const latestLng  = parseFloat(latest.longitude);
       const latestTime = new Date(latest.timestamp).toLocaleString();
 
-      document.getElementById("rover-header-status").textContent =
-        `Rover: ${latestLat.toFixed(4)}, ${latestLng.toFixed(4)}`;
-      document.getElementById("rover-last-pos").textContent =
-        `${latestLat.toFixed(4)}, ${latestLng.toFixed(4)}`;
-      document.getElementById("rover-last-seen").textContent = latestTime;
-      document.getElementById("rover-stop-count").textContent = roverHistory.length;
+      document.getElementById("rover-header-status").textContent = `Rover: ${latestLat.toFixed(4)}, ${latestLng.toFixed(4)}`;
+      document.getElementById("rover-last-pos").textContent      = `${latestLat.toFixed(4)}, ${latestLng.toFixed(4)}`;
+      document.getElementById("rover-last-seen").textContent     = latestTime;
+      document.getElementById("rover-stop-count").textContent    = roverHistory.length;
 
-      // ── DASHED PATH LINE ──────────────────────────────
-      // Build a polyline from all historical positions
       if (roverHistory.length > 1) {
         const pathCoords = roverHistory.map(r => [parseFloat(r.longitude), parseFloat(r.latitude)]);
         roverLayer.add(new Graphic({
           geometry: new Polyline({ paths: [pathCoords], spatialReference: { wkid: 4326 } }),
-          symbol: {
-            type: "simple-line",
-            color: [29, 78, 216, 0.7],   // Blue, slightly transparent
-            width: 2,
-            style: "dash"                 // Dashed line
-          }
+          symbol: { type: "simple-line", color: [29, 78, 216, 0.7], width: 2, style: "dash" }
         }));
       }
 
-      // ── WIFI RADIUS CIRCLES (one per historical stop) ──
-      // Each stop gets a faint radius circle showing detection range
       roverHistory.forEach((stop, index) => {
         const isLatest = index === roverHistory.length - 1;
-        const stopLat  = parseFloat(stop.latitude);
-        const stopLng  = parseFloat(stop.longitude);
-
-        // Draw a filled circle representing WiFi range
-        // Older stops are more faded, latest stop is most visible
-        const opacity = isLatest ? 0.15 : 0.06;
-        const outlineOpacity = isLatest ? 0.5 : 0.2;
-
         roverLayer.add(new Graphic({
           geometry: new Circle({
-            center: { type: "point", longitude: stopLng, latitude: stopLat },
-            radius: WIFI_RADIUS_METERS,
-            radiusUnit: "meters",
-            spatialReference: { wkid: 4326 }
+            center: { type: "point", longitude: parseFloat(stop.longitude), latitude: parseFloat(stop.latitude) },
+            radius: WIFI_RADIUS_METERS, radiusUnit: "meters", spatialReference: { wkid: 4326 }
           }),
           symbol: {
             type: "simple-fill",
-            color: [29, 78, 216, opacity],
-            outline: {
-              color: [29, 78, 216, outlineOpacity],
-              width: 1,
-              style: "dash"
-            }
+            color: [29, 78, 216, isLatest ? 0.15 : 0.06],
+            outline: { color: [29, 78, 216, isLatest ? 0.5 : 0.2], width: 1, style: "dash" }
           }
         }));
       });
 
-      // ── HISTORICAL STOP MARKERS (small diamonds) ──────
-      // Past positions — smaller, faded
       roverHistory.slice(0, -1).forEach(stop => {
         roverLayer.add(new Graphic({
           geometry: { type: "point", longitude: parseFloat(stop.longitude), latitude: parseFloat(stop.latitude) },
-          symbol: {
-            type: "simple-marker",
-            style: "diamond",
-            color: [29, 78, 216, 0.4],
-            outline: { color: [255, 255, 255, 0.6], width: 1 },
-            size: "10px"
-          },
+          symbol: { type: "simple-marker", style: "diamond", color: [29, 78, 216, 0.4], outline: { color: [255, 255, 255, 0.6], width: 1 }, size: "10px" },
           popupTemplate: {
             title: "Rover — Past Position",
-            content: `<b>Time:</b> ${new Date(stop.timestamp).toLocaleString()}<br>
-                      <b>Lat:</b> ${parseFloat(stop.latitude).toFixed(6)}<br>
-                      <b>Lng:</b> ${parseFloat(stop.longitude).toFixed(6)}`
+            content: `<b>Time:</b> ${new Date(stop.timestamp).toLocaleString()}<br><b>Lat:</b> ${parseFloat(stop.latitude).toFixed(6)}<br><b>Lng:</b> ${parseFloat(stop.longitude).toFixed(6)}`
           }
         }));
       });
 
-      // ── CURRENT ROVER MARKER (large, bright diamond) ──
       roverLayer.add(new Graphic({
         geometry: { type: "point", longitude: latestLng, latitude: latestLat },
-        symbol: {
-          type: "simple-marker",
-          style: "diamond",
-          color: [29, 78, 216, 0.95],
-          outline: { color: [255, 255, 255], width: 2 },
-          size: "18px"
-        },
+        symbol: { type: "simple-marker", style: "diamond", color: [29, 78, 216, 0.95], outline: { color: [255, 255, 255], width: 2 }, size: "18px" },
         popupTemplate: {
           title: "Rover — Current Position",
-          content: `<b>Last seen:</b> ${latestTime}<br>
-                    <b>Lat:</b> ${latestLat.toFixed(6)}<br>
-                    <b>Lng:</b> ${latestLng.toFixed(6)}<br>
-                    <b>WiFi radius:</b> ~${WIFI_RADIUS_METERS}m`
+          content: `<b>Last seen:</b> ${latestTime}<br><b>Lat:</b> ${latestLat.toFixed(6)}<br><b>Lng:</b> ${latestLng.toFixed(6)}<br><b>WiFi radius:</b> ~${WIFI_RADIUS_METERS}m`
         }
       }));
 
-    }); // end Promise.all
-  }); // end require
+    });
+  });
 </script>
 </body>
 </html>

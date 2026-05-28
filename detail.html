@@ -405,13 +405,6 @@
 
   const toF = c => (c * 9/5) + 32;
 
-  // Safely parse any timestamp string from Supabase.
-  // Handles both "2025-05-20 14:32:00" (space) and "2025-05-20T14:32:00" (T) formats.
-  function parseTS(str) {
-    if (!str) return new Date(NaN);
-    return new Date(str.replace(' ', 'T'));
-  }
-
   function rollingAverage(data, windowSize = 5) {
     if (data.length < windowSize) return data;
     const half = Math.floor(windowSize / 2);
@@ -426,7 +419,7 @@
 
   async function fetchNodeData() {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=event_timestamp.asc&limit=3000`,
+      `${SUPABASE_URL}/rest/v1/trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=timestamp_received.asc&limit=1000`,
       { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
     );
     return res.json();
@@ -554,19 +547,7 @@
     scales: {
       x: {
         type: "time",
-        time: {
-          tooltipFormat: "MMM d, h:mm a",
-          // Let Chart.js pick the unit automatically based on data range,
-          // but give it explicit display formats for each unit so labels
-          // are always readable regardless of time span
-          displayFormats: {
-            minute: "h:mm a",
-            hour:   "MMM d, ha",
-            day:    "MMM d",
-            week:   "MMM d",
-            month:  "MMM yyyy"
-          }
-        },
+        time: { tooltipFormat: "MMM d, h:mm a" },
         ticks: { color: "#6b7a6c", font: { family: "'IBM Plex Mono'" }, maxTicksLimit: 8 },
         grid: { color: "#e2e5e2" }
       },
@@ -609,25 +590,21 @@
 
     const fw = rows[rows.length - 1].firmware_version || "—";
     document.getElementById("firmware-badge").textContent = `fw ${fw}`;
-
-    // rows arrive oldest-first (asc), so rows[0] is genuinely the first record
-    const firstSeen = parseTS(rows[0].event_timestamp).toLocaleDateString();
-    const lastSeen  = parseTS(rows[rows.length - 1].event_timestamp).toLocaleString();
+    const firstSeen = new Date(rows[0].timestamp_received).toLocaleDateString();
+    const lastSeen  = new Date(rows[rows.length - 1].timestamp_received).toLocaleString();
     document.getElementById("page-subtitle").textContent =
       `First seen: ${firstSeen} · Last seen: ${lastSeen} · ${rows.length} records`;
 
-    // Use parseTS for all sorting and x-axis values so the time format is
-    // handled consistently regardless of what Supabase returns
     const rawTempData = rows
       .filter(r => r.event_type === "temp" && r.event_value !== null)
-      .sort((a, b) => parseTS(a.event_timestamp) - parseTS(b.event_timestamp))
-      .map(r => ({ x: parseTS(r.event_timestamp), y: toF(parseFloat(r.event_value)) }));
+      .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
+      .map(r => ({ x: new Date(r.event_timestamp), y: toF(parseFloat(r.event_value)) }));
     const tempData = rollingAverage(rawTempData, 5);
 
     const rawHumData = rows
       .filter(r => r.event_type === "humidity" && r.event_value !== null)
-      .sort((a, b) => parseTS(a.event_timestamp) - parseTS(b.event_timestamp))
-      .map(r => ({ x: parseTS(r.event_timestamp), y: parseFloat(r.event_value) }));
+      .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
+      .map(r => ({ x: new Date(r.event_timestamp), y: parseFloat(r.event_value) }));
     const humData = rollingAverage(rawHumData, 5);
 
     const addedRows   = rows.filter(r => r.event_type === "beetle_count_added");
@@ -635,17 +612,17 @@
     let runningTotal  = 0;
     const allInsectRows = rows
       .filter(r => r.event_type === "beetle_count_added" || r.event_type === "beetle_count_removed")
-      .sort((a, b) => parseTS(a.event_timestamp) - parseTS(b.event_timestamp));
+      .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp));
     const insectData = allInsectRows.map(r => {
       runningTotal += r.event_type === "beetle_count_added" ? 1 : -1;
-      return { x: parseTS(r.event_timestamp), y: runningTotal };
+      return { x: new Date(r.event_timestamp), y: runningTotal };
     });
     const totalInsects = addedRows.length - removedRows.length;
 
     const battData = rows
       .filter(r => r.battery_voltage !== null && parseFloat(r.battery_voltage) > 0)
-      .sort((a, b) => parseTS(a.event_timestamp) - parseTS(b.event_timestamp))
-      .map(r => ({ x: parseTS(r.event_timestamp), y: parseFloat(r.battery_voltage) }));
+      .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
+      .map(r => ({ x: new Date(r.event_timestamp), y: parseFloat(r.battery_voltage) }));
 
     if (tempData.length)
       document.getElementById("stat-temp").innerHTML =
