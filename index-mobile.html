@@ -536,12 +536,11 @@
 
   // ── NODE CARDS ───────────────────────────────────────
   async function loadNodes() {
-    const [data, locationMap] = await Promise.all([
-      fetchFromSupabase("trap_data?select=node_id&order=node_id"),
-      fetchNodeLocations()
-    ]);
+    // Source node IDs from node_locations rather than trap_data to avoid
+    // Supabase's 1000-row default cap hiding nodes whose records start later.
+    const locationMap = await fetchNodeLocations();
+    const nodeIds = Object.keys(locationMap).sort();
 
-    const nodeIds = [...new Set(data.map(r => r.node_id).filter(Boolean))];
     document.getElementById("node-count").textContent = nodeIds.length;
 
     const list = document.getElementById("nodes-list");
