@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SmartTrap Scout Dashboard</title>
 
-  <!-- Mobile redirect — runs before anything else renders -->
   <script>
     if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
       window.location.replace("index-mobile.html");
@@ -14,23 +13,22 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css"/>
   <script src="https://js.arcgis.com/4.29/"></script>
 
   <style>
     :root {
-      --bg:        #f5f6f4;
-      --surface:   #ffffff;
-      --border:    #e2e5e2;
-      --accent:    #1a7a3c;
-      --accent2:   #2da653;
-      --warn:      #b45309;
-      --danger:    #dc2626;
-      --rover:     #1d4ed8;
-      --text:      #1a1f1a;
-      --muted:     #6b7a6c;
-      --card-bg:   #ffffff;
+      --bg:      #f5f6f4;
+      --surface: #ffffff;
+      --border:  #e2e5e2;
+      --accent:  #1a7a3c;
+      --accent2: #2da653;
+      --warn:    #b45309;
+      --danger:  #dc2626;
+      --rover:   #1d4ed8;
+      --text:    #1a1f1a;
+      --muted:   #6b7a6c;
+      --card-bg: #ffffff;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -45,6 +43,7 @@
       overflow: hidden;
     }
 
+    /* ── HEADER ── */
     header {
       display: flex;
       align-items: center;
@@ -84,8 +83,7 @@
     }
 
     .rover-dot {
-      width: 7px;
-      height: 7px;
+      width: 7px; height: 7px;
       background: var(--rover);
       transform: rotate(45deg);
       animation: pulse 2s infinite;
@@ -97,9 +95,54 @@
       50%       { opacity: 0.35; }
     }
 
-    .main { display: flex; flex: 1; overflow: hidden; }
+    /* ── TAB NAV ── */
+    .tab-nav {
+      display: flex;
+      align-items: stretch;
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      padding: 0 20px;
+      gap: 4px;
+      flex-shrink: 0;
+      height: 46px;
+    }
 
-    /* LEFT PANEL */
+    .tab-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      padding: 0 20px;
+      margin-bottom: -2px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      border-radius: 6px 6px 0 0;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: var(--bg);
+    }
+
+    /* ── PANELS ── */
+    .panel { display: none; flex: 1; overflow: hidden; min-height: 0; }
+    .panel.active { display: flex; }
+
+    /* ── DASHBOARD PANEL ── */
+    .main { display: flex; flex: 1; overflow: hidden; width: 100%; }
+
+    /* ── SIDEBAR ── */
     .sidebar {
       width: 300px;
       flex-shrink: 0;
@@ -137,12 +180,7 @@
       flex-shrink: 0;
     }
 
-    .rover-card-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
+    .rover-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 
     .rover-card-title {
       font-family: 'IBM Plex Mono', monospace;
@@ -153,12 +191,7 @@
       letter-spacing: 0.08em;
     }
 
-    .rover-metrics {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-
+    .rover-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .rover-metric { display: flex; flex-direction: column; gap: 1px; }
 
     .rover-metric-label {
@@ -194,9 +227,9 @@
       border-radius: 8px;
       padding: 14px 16px;
       transition: border-color 0.15s, background 0.15s;
-      text-decoration: none;
       display: block;
       color: inherit;
+      text-decoration: none;
     }
 
     .node-card:hover { border-color: var(--accent); background: #f0f7f2; }
@@ -215,22 +248,26 @@
       color: var(--accent);
     }
 
+    /* Live / stale status badge */
     .node-status {
       display: flex;
       align-items: center;
       gap: 5px;
       font-size: 10px;
-      color: var(--muted);
       font-family: 'IBM Plex Mono', monospace;
     }
 
+    .node-status.live  { color: var(--accent); }
+    .node-status.stale { color: var(--warn); font-weight: 500; font-size: 10px; }
+
     .status-dot {
-      width: 6px;
-      height: 6px;
+      width: 6px; height: 6px;
       border-radius: 50%;
-      background: var(--accent);
-      animation: pulse 2s infinite;
+      flex-shrink: 0;
     }
+
+    .status-dot.live  { background: var(--accent); animation: pulse 2s infinite; }
+    .status-dot.stale { background: var(--warn); }
 
     .node-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .metric { display: flex; flex-direction: column; gap: 2px; }
@@ -247,6 +284,19 @@
     .metric-value.insects { color: var(--accent); font-family: 'IBM Plex Mono', monospace; }
     .metric-unit { font-size: 10px; color: var(--muted); margin-left: 2px; }
     .metric-sub { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); }
+
+    /* Stale data banner inside node card */
+    .stale-banner {
+      margin-top: 10px;
+      padding: 6px 10px;
+      background: #fef9f0;
+      border: 1px solid #f5d9a8;
+      border-radius: 5px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--warn);
+      line-height: 1.4;
+    }
 
     .node-location-badge {
       margin-top: 10px;
@@ -292,14 +342,13 @@
       font-size: 11px;
     }
 
-    /* MAP */
+    /* ── MAP ── */
     .map-container { flex: 1; position: relative; }
     #map-view { width: 100%; height: 100%; }
 
     .map-overlay {
       position: absolute;
-      top: 12px;
-      right: 12px;
+      top: 12px; right: 12px;
       background: rgba(255,255,255,0.92);
       border: 1px solid var(--border);
       border-radius: 6px;
@@ -316,8 +365,7 @@
 
     .map-legend {
       position: absolute;
-      bottom: 16px;
-      right: 16px;
+      bottom: 16px; right: 16px;
       background: rgba(255,255,255,0.92);
       border: 1px solid var(--border);
       border-radius: 6px;
@@ -335,8 +383,7 @@
     .legend-item { display: flex; align-items: center; gap: 8px; }
 
     .legend-dot {
-      width: 10px;
-      height: 10px;
+      width: 10px; height: 10px;
       border-radius: 50%;
       background: #dc2626;
       border: 2px solid white;
@@ -345,8 +392,7 @@
     }
 
     .legend-diamond {
-      width: 10px;
-      height: 10px;
+      width: 10px; height: 10px;
       background: var(--rover);
       transform: rotate(45deg);
       border: 1.5px solid white;
@@ -355,27 +401,24 @@
     }
 
     .legend-dash {
-      width: 18px;
-      height: 2px;
+      width: 18px; height: 2px;
       border-top: 2px dashed var(--rover);
       flex-shrink: 0;
     }
 
     .legend-circle {
-      width: 14px;
-      height: 14px;
+      width: 14px; height: 14px;
       border-radius: 50%;
-      background: rgba(29, 78, 216, 0.12);
-      border: 1.5px dashed rgba(29, 78, 216, 0.4);
+      background: rgba(29,78,216,0.12);
+      border: 1.5px dashed rgba(29,78,216,0.4);
       flex-shrink: 0;
     }
 
     .no-location-banner {
       position: absolute;
-      bottom: 16px;
-      left: 50%;
+      bottom: 16px; left: 50%;
       transform: translateX(-50%);
-      background: rgba(180, 83, 9, 0.92);
+      background: rgba(180,83,9,0.92);
       color: #fff;
       font-family: 'IBM Plex Mono', monospace;
       font-size: 11px;
@@ -385,46 +428,8 @@
       display: none;
     }
 
-    /* ── TAB NAV ── */
-    .tab-nav {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0 16px;
-      height: 38px;
-      flex-shrink: 0;
-    }
-
-    .tab-btn {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--muted);
-      background: none;
-      border: none;
-      border-bottom: 2px solid transparent;
-      padding: 0 14px;
-      height: 38px;
-      cursor: pointer;
-      transition: color 0.15s, border-color 0.15s;
-      margin-bottom: -1px;
-    }
-
-    .tab-btn:hover { color: var(--text); }
-    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-    /* ── PANELS ── */
-    .panel { display: none; flex: 1; overflow: hidden; min-height: 0; }
-    .panel.active { display: flex; }
-
     /* ── ORCHARD SETUP PANEL ── */
-    #panel-setup {
-      flex-direction: column;
-      position: relative;
-    }
+    #panel-setup { flex-direction: column; position: relative; }
 
     .setup-toolbar {
       display: flex;
@@ -443,7 +448,6 @@
       text-transform: uppercase;
       letter-spacing: 0.1em;
       color: var(--muted);
-      margin-right: 4px;
     }
 
     .tool-btn {
@@ -464,13 +468,7 @@
     }
 
     .tool-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-    .tool-btn.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-    }
-
+    .tool-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
     .tool-btn.danger:hover { border-color: #dc2626; color: #dc2626; }
 
     .tool-btn.save-btn {
@@ -483,29 +481,18 @@
     .tool-btn.save-btn:hover { background: var(--accent2); border-color: var(--accent2); }
     .tool-btn.save-btn:disabled { background: var(--border); border-color: var(--border); color: var(--muted); cursor: not-allowed; }
 
-    .toolbar-divider {
-      width: 1px;
-      height: 20px;
-      background: var(--border);
-      margin: 0 4px;
-    }
+    .toolbar-divider { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
 
-    .toolbar-status {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px;
-      color: var(--muted);
-      padding: 0 6px;
-    }
-
+    .toolbar-status { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); padding: 0 6px; }
     .toolbar-status.success { color: var(--accent); }
     .toolbar-status.error   { color: #dc2626; }
 
+    .setup-map-wrap { flex: 1; position: relative; display: flex; flex-direction: column; min-height: 0; }
     #setup-map-view { flex: 1; width: 100%; height: 100%; min-height: 0; }
 
     .setup-legend {
       position: absolute;
-      bottom: 16px;
-      right: 16px;
+      bottom: 16px; right: 16px;
       background: rgba(255,255,255,0.92);
       border: 1px solid var(--border);
       border-radius: 6px;
@@ -523,8 +510,7 @@
 
     .setup-hint {
       position: absolute;
-      top: 10px;
-      left: 50%;
+      top: 10px; left: 50%;
       transform: translateX(-50%);
       background: rgba(26,122,60,0.92);
       color: #fff;
@@ -541,8 +527,7 @@
     .legend-swatch-green {
       width: 18px; height: 3px;
       background: rgba(26,122,60,0.7);
-      border-radius: 2px;
-      flex-shrink: 0;
+      border-radius: 2px; flex-shrink: 0;
     }
 
     .legend-swatch-circle {
@@ -576,75 +561,73 @@
   </div>
 </header>
 
-<!-- ── TAB NAVIGATION ── -->
+<!-- ── TAB NAV ── -->
 <nav class="tab-nav">
-  <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
-  <button class="tab-btn" id="tab-setup" onclick="switchTab('setup')">Orchard Setup</button>
+  <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">📡 Dashboard</button>
+  <button class="tab-btn" id="tab-setup" onclick="switchTab('setup')">🗺 Orchard Setup</button>
 </nav>
 
-<!-- ── DASHBOARD PANEL ── -->
+<!-- ══ DASHBOARD PANEL ══ -->
 <div class="panel active" id="panel-dashboard">
-<div class="main">
+  <div class="main">
 
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-title">Field Nodes</div>
-      <div class="node-count"><span id="node-count">—</span> active nodes</div>
-    </div>
-
-    <div class="rover-card">
-      <div class="rover-card-header">
-        <div class="rover-dot"></div>
-        <div class="rover-card-title">Mobile Gateway / Rover</div>
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Field Nodes</div>
+        <div class="node-count"><span id="node-count">—</span> registered nodes</div>
       </div>
-      <div class="rover-metrics">
-        <div class="rover-metric">
-          <div class="rover-metric-label">Last Position</div>
-          <div class="rover-metric-value" id="rover-last-pos">—</div>
+
+      <div class="rover-card">
+        <div class="rover-card-header">
+          <div class="rover-dot"></div>
+          <div class="rover-card-title">Mobile Gateway / Rover</div>
         </div>
-        <div class="rover-metric">
-          <div class="rover-metric-label">Last Seen</div>
-          <div class="rover-metric-value" id="rover-last-seen">—</div>
+        <div class="rover-metrics">
+          <div class="rover-metric">
+            <div class="rover-metric-label">Last Position</div>
+            <div class="rover-metric-value" id="rover-last-pos">—</div>
+          </div>
+          <div class="rover-metric">
+            <div class="rover-metric-label">Last Seen</div>
+            <div class="rover-metric-value" id="rover-last-seen">—</div>
+          </div>
+          <div class="rover-metric">
+            <div class="rover-metric-label">Total Stops</div>
+            <div class="rover-metric-value" id="rover-stop-count">—</div>
+          </div>
+          <div class="rover-metric">
+            <div class="rover-metric-label">WiFi Radius</div>
+            <div class="rover-metric-value" id="rover-radius">~50m</div>
+          </div>
         </div>
-        <div class="rover-metric">
-          <div class="rover-metric-label">Total Stops</div>
-          <div class="rover-metric-value" id="rover-stop-count">—</div>
-        </div>
-        <div class="rover-metric">
-          <div class="rover-metric-label">WiFi Radius</div>
-          <div class="rover-metric-value" id="rover-radius">~50m</div>
-        </div>
+      </div>
+
+      <div class="nodes-list" id="nodes-list">
+        <div class="loading-card">Loading nodes...</div>
       </div>
     </div>
 
-    <div class="nodes-list" id="nodes-list">
-      <div class="loading-card">Loading nodes...</div>
+    <div class="map-container">
+      <div id="map-view"></div>
+      <div class="map-overlay">
+        <strong id="map-overlay-city">Loading location...</strong>
+        Almond orchard monitoring
+      </div>
+      <div class="map-legend">
+        <div class="legend-item"><div class="legend-dot"></div> Trap node</div>
+        <div class="legend-item"><div class="legend-diamond"></div> Rover (current)</div>
+        <div class="legend-item"><div class="legend-dash"></div> Rover path</div>
+        <div class="legend-item"><div class="legend-circle"></div> WiFi detection radius</div>
+      </div>
+      <div class="no-location-banner" id="no-location-banner">
+        ⚠ Some nodes have no GPS coordinates — visit node detail to add them
+      </div>
     </div>
+
   </div>
-
-  <div class="map-container">
-    <div id="map-view"></div>
-    <div class="map-overlay">
-      <strong id="map-overlay-city">Loading location...</strong>
-      Almond orchard monitoring
-    </div>
-
-    <div class="map-legend">
-      <div class="legend-item"><div class="legend-dot"></div> Trap node</div>
-      <div class="legend-item"><div class="legend-diamond"></div> Rover (current)</div>
-      <div class="legend-item"><div class="legend-dash"></div> Rover path</div>
-      <div class="legend-item"><div class="legend-circle"></div> WiFi detection radius</div>
-    </div>
-
-    <div class="no-location-banner" id="no-location-banner">
-      ⚠ Some nodes have no GPS coordinates — visit node detail to add them
-    </div>
-  </div>
-
 </div>
-</div><!-- end panel-dashboard -->
 
-<!-- ── ORCHARD SETUP PANEL ── -->
+<!-- ══ ORCHARD SETUP PANEL ══ -->
 <div class="panel" id="panel-setup">
   <div class="setup-toolbar">
     <span class="toolbar-label">Boundary:</span>
@@ -657,10 +640,9 @@
     <span class="toolbar-status" id="setup-status"></span>
     <button class="tool-btn save-btn" id="btn-save-boundary" onclick="saveBoundary()" disabled>💾 Save Boundary</button>
   </div>
-
-  <div style="flex:1; position:relative; display:flex; flex-direction:column; min-height:0;">
+  <div class="setup-map-wrap">
     <div id="setup-map-view"></div>
-    <div class="setup-hint" id="setup-hint">Click to add boundary points · Double-click to finish</div>
+    <div class="setup-hint" id="setup-hint">Click to place boundary points · Double-click to finish</div>
     <div class="setup-legend">
       <div class="legend-item"><div class="legend-swatch-green"></div> Orchard boundary</div>
       <div class="legend-item"><div class="legend-swatch-circle"></div> 1-mile pheromone radius</div>
@@ -677,7 +659,21 @@
   const DEFAULT_CENTER     = [-120.93426, 37.35368];
   const WIFI_RADIUS_METERS = 50;
 
-  // ── REVERSE GEOCODE ──────────────────────────────────
+  // A node is considered "live" if it reported within this many minutes
+  const LIVE_THRESHOLD_MINUTES = 30;
+
+  // ── HELPERS ──────────────────────────────────────────
+  async function fetchFromSupabase(query, extraHeaders = {}) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${query}`, {
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        ...extraHeaders
+      }
+    });
+    return res.json();
+  }
+
   async function fetchNearestCity(lat, lng) {
     try {
       const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers: { "Accept-Language": "en-US,en" } });
@@ -685,16 +681,9 @@
       const addr = data.address || {};
       const place = addr.town || addr.village || addr.city || addr.county || null;
       const state = addr.state_code || addr.state || "";
-      const stateAbbr = state.length > 2 ? state.slice(0, 2).toUpperCase() : state.toUpperCase();
+      const stateAbbr = state.length > 2 ? state.slice(0,2).toUpperCase() : state.toUpperCase();
       return place ? `${place}, ${stateAbbr}` : null;
     } catch { return null; }
-  }
-
-  async function fetchFromSupabase(query) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${query}`, {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
-    });
-    return res.json();
   }
 
   async function fetchNodeLocations() {
@@ -711,9 +700,9 @@
     return Array.isArray(rows) ? rows : [];
   }
 
+  // ── NODE CARDS ───────────────────────────────────────
   async function loadNodes() {
-    // Source node IDs from node_locations rather than trap_data to avoid
-    // Supabase's 1000-row default cap hiding nodes whose records start later.
+    // Pull all known node IDs from node_locations — persists even when offline
     const locationMap = await fetchNodeLocations();
     const nodeIds = Object.keys(locationMap).sort();
 
@@ -749,22 +738,34 @@
       `trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=timestamp_received.desc&limit=50`
     );
 
-    const latest    = (type) => rows.find(r => r.event_type === type);
+    const hasData   = Array.isArray(rows) && rows.length > 0;
+    const latest    = (type) => hasData ? rows.find(r => r.event_type === type) : null;
     const temp      = latest("temp");
     const humidity  = latest("humidity");
-    const battery   = rows[0];
+    const topRow    = hasData ? rows[0] : null;
 
-    const added     = rows.filter(r => r.event_type === "beetle_count_added").length;
-    const removed   = rows.filter(r => r.event_type === "beetle_count_removed").length;
+    // Determine live vs stale
+    let isLive = false;
+    let lastSeenStr = "—";
+    let lastSeenFull = "—";
+    if (topRow && topRow.timestamp_received) {
+      const lastMs  = new Date(topRow.timestamp_received).getTime();
+      const agoMin  = (Date.now() - lastMs) / 60000;
+      isLive        = agoMin <= LIVE_THRESHOLD_MINUTES;
+      lastSeenStr   = new Date(topRow.timestamp_received).toLocaleTimeString();
+      lastSeenFull  = new Date(topRow.timestamp_received).toLocaleString();
+    }
+
+    const added     = hasData ? rows.filter(r => r.event_type === "beetle_count_added").length : 0;
+    const removed   = hasData ? rows.filter(r => r.event_type === "beetle_count_removed").length : 0;
     const insectVal = added - removed;
 
-    const toF      = c => ((c * 9/5) + 32).toFixed(1);
-    const tempVal  = temp     ? toF(parseFloat(temp.event_value))           : "—";
-    const humVal   = humidity ? parseFloat(humidity.event_value).toFixed(1) : "—";
-    const battRaw  = battery  ? parseFloat(battery.battery_voltage)          : null;
-    const battVal  = (battRaw !== null && battRaw > 0) ? battRaw : null;
-    const rssi     = battery  ? battery.signal_strength_rssi                 : null;
-    const lastSeen = battery  ? new Date(battery.timestamp_received).toLocaleTimeString() : "—";
+    const toF     = c => ((c * 9/5) + 32).toFixed(1);
+    const tempVal = temp     ? toF(parseFloat(temp.event_value))           : "—";
+    const humVal  = humidity ? parseFloat(humidity.event_value).toFixed(1) : "—";
+    const battRaw = topRow   ? parseFloat(topRow.battery_voltage)           : null;
+    const battVal = (battRaw !== null && battRaw > 0) ? battRaw : null;
+    const rssi    = topRow   ? topRow.signal_strength_rssi                  : null;
 
     let battColor = "#4ade80";
     let battPct   = 100;
@@ -778,12 +779,22 @@
       ? `<div class="node-location-badge">📍 ${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}</div>`
       : `<div class="node-location-badge no-location">⚠ No location set</div>`;
 
+    // Status badge — live vs not transmitting
+    const statusHtml = isLive
+      ? `<div class="node-status live"><div class="status-dot live"></div>LIVE</div>`
+      : `<div class="node-status stale"><div class="status-dot stale"></div>⚠ NOT TRANSMITTING</div>`;
+
+    // Stale data notice inside the card
+    const staleBannerHtml = (!isLive && hasData)
+      ? `<div class="stale-banner">⏱ Last transmission: ${lastSeenFull}<br>Viewing cached data — node may be out of rover range.</div>`
+      : "";
+
     const card = document.createElement("div");
     card.className = "node-card";
     card.innerHTML = `
       <div class="node-card-header">
         <div class="node-id">${nodeId}</div>
-        <div class="node-status"><div class="status-dot"></div>LIVE</div>
+        ${statusHtml}
       </div>
       <div class="node-metrics">
         <div class="metric">
@@ -804,6 +815,7 @@
           <div class="metric-sub">RSSI: ${rssi !== null ? rssi + ' dBm' : '—'}</div>
         </div>
       </div>
+      ${staleBannerHtml}
       ${locationBadgeHtml}
       <div class="battery-bar">
         <div class="battery-fill" style="width:${battPct}%;background:${battColor}"></div>
@@ -814,12 +826,26 @@
     `;
 
     document.getElementById("nodes-list").appendChild(card);
-    document.getElementById("last-updated").textContent = lastSeen;
+    if (isLive) document.getElementById("last-updated").textContent = lastSeenStr;
 
     return { nodeId, coords, insectVal, tempVal, humVal };
   }
 
-  // ─── ARCGIS MAP ───────────────────────────────────────────
+  // ── TAB SWITCHING ────────────────────────────────────
+  let setupMapInitialized = false;
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+    if (name === 'setup' && !setupMapInitialized) {
+      setupMapInitialized = true;
+      initSetupMap();
+    }
+  }
+
+  // ── ARCGIS DASHBOARD MAP ─────────────────────────────
   require([
     "esri/config",
     "esri/Map",
@@ -847,7 +873,6 @@
 
     Promise.all([loadNodes(), fetchRoverHistory()]).then(([nodes, roverHistory]) => {
 
-      // ── TRAP NODE MARKERS ──────────────────────────────
       const placedNodes = nodes.filter(n => n.coords !== null);
 
       placedNodes.forEach((node, index) => {
@@ -887,13 +912,12 @@
         }));
       });
 
-      // ── CENTER MAP ON ALL PLACED NODES ────────────────
       if (placedNodes.length === 1) {
         view.center = placedNodes[0].coords;
         view.zoom   = 17;
       } else if (placedNodes.length > 1) {
-        const lngs   = placedNodes.map(n => n.coords[0]);
-        const lats   = placedNodes.map(n => n.coords[1]);
+        const lngs = placedNodes.map(n => n.coords[0]);
+        const lats = placedNodes.map(n => n.coords[1]);
         view.goTo({
           target: {
             type: "extent",
@@ -904,7 +928,6 @@
         }, { animate: false }).catch(() => {});
       }
 
-      // ── REVERSE GEOCODE CITY NAME ─────────────────────
       if (placedNodes.length > 0) {
         const lngs   = placedNodes.map(n => n.coords[0]);
         const lats   = placedNodes.map(n => n.coords[1]);
@@ -916,7 +939,6 @@
         });
       }
 
-      // ── ROVER PATH + MARKERS ───────────────────────────
       if (roverHistory.length === 0) {
         document.getElementById("rover-header-status").textContent = "Rover: no data yet";
         document.getElementById("rover-last-pos").textContent      = "—";
@@ -925,10 +947,10 @@
         return;
       }
 
-      const latest     = roverHistory[roverHistory.length - 1];
-      const latestLat  = parseFloat(latest.latitude);
-      const latestLng  = parseFloat(latest.longitude);
-      const latestTime = new Date(latest.timestamp).toLocaleString();
+      const latestRover    = roverHistory[roverHistory.length - 1];
+      const latestLat  = parseFloat(latestRover.latitude);
+      const latestLng  = parseFloat(latestRover.longitude);
+      const latestTime = new Date(latestRover.timestamp).toLocaleString();
 
       document.getElementById("rover-header-status").textContent = `Rover: ${latestLat.toFixed(4)}, ${latestLng.toFixed(4)}`;
       document.getElementById("rover-last-pos").textContent      = `${latestLat.toFixed(4)}, ${latestLng.toFixed(4)}`;
@@ -981,112 +1003,46 @@
     });
   });
 
-  // =====================================================
-  // TAB SWITCHING
-  // =====================================================
+  // ── ORCHARD SETUP MAP ────────────────────────────────
+  const PHEROMONE_RADIUS_METERS = 1609.34; // 1 mile
 
-  let setupMapInitialized = false;
-
-  function switchTab(name) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('tab-' + name).classList.add('active');
-    document.getElementById('panel-' + name).classList.add('active');
-
-    // Lazy-init the setup map the first time the tab is opened
-    if (name === 'setup' && !setupMapInitialized) {
-      setupMapInitialized = true;
-      initSetupMap();
-    }
-  }
-
-  // =====================================================
-  // ORCHARD SETUP MAP
-  // =====================================================
-
-  const PHEROMONE_RADIUS_MILES = 1;
-  const PHEROMONE_RADIUS_METERS = PHEROMONE_RADIUS_MILES * 1609.34;
-
-  let setupView       = null;
-  let boundaryLayer   = null;
-  let radiusLayer     = null;
-  let nodeSetupLayer  = null;
-  let drawingActive   = false;
-  let clickPoints     = [];   // [{longitude, latitude}]
-  let sketchPoints    = [];   // live points before close
-  let showRadius      = true;
-
-  // Saved boundary polygon points from DB
-  let savedBoundaryPoints = [];
+  let setupView      = null;
+  let boundaryLayer  = null;
+  let radiusLayer    = null;
+  let nodeSetupLayer = null;
+  let drawingActive  = false;
+  let clickPoints    = [];
+  let showRadius     = true;
+  let _SetupGraphic  = null;
 
   async function fetchBoundary() {
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/orchard_boundaries?select=id,polygon_points&order=id.asc&limit=1`,
-        { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
-      );
-      const rows = await res.json();
-      return rows.length > 0 ? rows[0] : null;
+      const rows = await fetchFromSupabase("orchard_boundaries?select=id,polygon_points&order=id.asc&limit=1");
+      return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
     } catch { return null; }
   }
 
   async function saveBoundary() {
-    if (clickPoints.length < 3) {
-      setSetupStatus("Need at least 3 points to save a boundary.", "error");
-      return;
-    }
-
+    if (clickPoints.length < 3) { setSetupStatus("Need at least 3 points to save.", "error"); return; }
     const btn = document.getElementById('btn-save-boundary');
-    btn.disabled = true;
-    btn.textContent = "Saving...";
+    btn.disabled = true; btn.textContent = "Saving...";
     setSetupStatus("", "");
-
     try {
       const existing = await fetchBoundary();
-      const payload = JSON.stringify({ polygon_points: clickPoints, updated_at: new Date().toISOString() });
-
-      let res;
-      if (existing) {
-        res = await fetch(
-          `${SUPABASE_URL}/rest/v1/orchard_boundaries?id=eq.${existing.id}`,
-          {
-            method: "PATCH",
-            headers: {
-              "apikey": SUPABASE_KEY,
-              "Authorization": `Bearer ${SUPABASE_KEY}`,
-              "Content-Type": "application/json",
-              "Prefer": "return=minimal"
-            },
-            body: payload
-          }
-        );
-      } else {
-        res = await fetch(
-          `${SUPABASE_URL}/rest/v1/orchard_boundaries`,
-          {
-            method: "POST",
-            headers: {
-              "apikey": SUPABASE_KEY,
-              "Authorization": `Bearer ${SUPABASE_KEY}`,
-              "Content-Type": "application/json",
-              "Prefer": "return=minimal"
-            },
-            body: JSON.stringify({ name: "Orchard 1", polygon_points: clickPoints })
-          }
-        );
-      }
-
-      if (res.ok) {
-        savedBoundaryPoints = [...clickPoints];
-        setSetupStatus("✓ Boundary saved.", "success");
-      } else {
-        const txt = await res.text();
-        setSetupStatus("Save failed: " + txt, "error");
-      }
-    } catch (err) {
-      setSetupStatus("Save failed: " + err.message, "error");
-    }
-
+      const body = { polygon_points: clickPoints, updated_at: new Date().toISOString() };
+      const url  = existing
+        ? `${SUPABASE_URL}/rest/v1/orchard_boundaries?id=eq.${existing.id}`
+        : `${SUPABASE_URL}/rest/v1/orchard_boundaries`;
+      const res = await fetch(url, {
+        method: existing ? "PATCH" : "POST",
+        headers: {
+          "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json", "Prefer": "return=minimal"
+        },
+        body: JSON.stringify(existing ? body : { name: "Orchard 1", ...body })
+      });
+      setSetupStatus(res.ok ? `✓ Boundary saved (${clickPoints.length} points).` : `Save failed: ${await res.text()}`, res.ok ? "success" : "error");
+    } catch(err) { setSetupStatus("Save failed: " + err.message, "error"); }
     btn.textContent = "💾 Save Boundary";
     btn.disabled = clickPoints.length < 3;
   }
@@ -1101,46 +1057,31 @@
     if (!setupView) return;
     drawingActive = !drawingActive;
     const btn = document.getElementById('btn-draw');
-
     if (drawingActive) {
-      // Clear existing points and start fresh
       clickPoints = [];
       redrawBoundary();
-      btn.classList.add('active');
-      btn.textContent = "⏹ Stop Drawing";
+      btn.classList.add('active'); btn.textContent = "⏹ Stop Drawing";
       document.getElementById('setup-hint').style.display = 'block';
       setupView.cursor = "crosshair";
-      setSetupStatus("Click to place boundary points. Double-click to finish.", "");
-    } else {
-      stopDrawing();
-    }
+      setSetupStatus("Click to place points. Double-click to finish.", "");
+    } else { stopDrawing(); }
   }
 
   function stopDrawing() {
     drawingActive = false;
     const btn = document.getElementById('btn-draw');
-    btn.classList.remove('active');
-    btn.textContent = "✏ Draw Orchard";
+    btn.classList.remove('active'); btn.textContent = "✏ Draw Orchard";
     document.getElementById('setup-hint').style.display = 'none';
-    setupView.cursor = "default";
-
-    if (clickPoints.length >= 3) {
-      setSetupStatus(`${clickPoints.length} points · boundary ready to save.`, "");
-      document.getElementById('btn-save-boundary').disabled = false;
-    } else if (clickPoints.length > 0) {
-      setSetupStatus("Need at least 3 points for a valid boundary.", "error");
-    } else {
-      setSetupStatus("", "");
-    }
+    if (setupView) setupView.cursor = "default";
+    document.getElementById('btn-save-boundary').disabled = clickPoints.length < 3;
+    setSetupStatus(clickPoints.length >= 3 ? `${clickPoints.length} points · ready to save.` : clickPoints.length > 0 ? "Need at least 3 points." : "", clickPoints.length >= 3 ? "" : "error");
     redrawBoundary();
   }
 
   function clearBoundary() {
-    clickPoints = [];
-    drawingActive = false;
+    clickPoints = []; drawingActive = false;
     const btn = document.getElementById('btn-draw');
-    btn.classList.remove('active');
-    btn.textContent = "✏ Draw Orchard";
+    btn.classList.remove('active'); btn.textContent = "✏ Draw Orchard";
     document.getElementById('setup-hint').style.display = 'none';
     if (setupView) setupView.cursor = "default";
     document.getElementById('btn-save-boundary').disabled = true;
@@ -1150,66 +1091,42 @@
 
   function toggleRadiusLayer() {
     showRadius = !showRadius;
-    const btn = document.getElementById('btn-toggle-radius');
     if (radiusLayer) radiusLayer.visible = showRadius;
+    const btn = document.getElementById('btn-toggle-radius');
     btn.textContent = showRadius ? "◎ Hide 1-mi Radius" : "◎ Show 1-mi Radius";
     btn.classList.toggle('active', showRadius);
   }
 
   function redrawBoundary() {
-    if (!boundaryLayer) return;
+    if (!boundaryLayer || !_SetupGraphic) return;
     boundaryLayer.removeAll();
-
     if (clickPoints.length === 0) return;
 
-    // Draw each clicked point as a small dot
+    // Point markers
     clickPoints.forEach((pt, i) => {
-      boundaryLayer.add(new window._setupGraphic({
+      boundaryLayer.add(new _SetupGraphic({
         geometry: { type: "point", longitude: pt.longitude, latitude: pt.latitude },
-        symbol: {
-          type: "simple-marker",
-          color: [26, 122, 60, 0.9],
-          outline: { color: [255, 255, 255], width: 1.5 },
-          size: i === 0 ? "12px" : "8px"
-        }
+        symbol: { type: "simple-marker", color: [26,122,60,0.9], outline: { color: [255,255,255], width: 1.5 }, size: i === 0 ? "12px" : "8px" }
       }));
     });
 
-    // Draw lines connecting points
+    // Connecting line
     if (clickPoints.length > 1) {
       const coords = clickPoints.map(p => [p.longitude, p.latitude]);
-      // If not drawing, close the polygon
-      const path = drawingActive ? coords : [...coords, coords[0]];
-      boundaryLayer.add(new window._setupGraphic({
-        geometry: {
-          type: "polyline",
-          paths: [path],
-          spatialReference: { wkid: 4326 }
-        },
-        symbol: {
-          type: "simple-line",
-          color: [26, 122, 60, 0.85],
-          width: drawingActive ? 2 : 2.5,
-          style: drawingActive ? "dash" : "solid"
-        }
+      const path   = drawingActive ? coords : [...coords, coords[0]];
+      boundaryLayer.add(new _SetupGraphic({
+        geometry: { type: "polyline", paths: [path], spatialReference: { wkid: 4326 } },
+        symbol: { type: "simple-line", color: [26,122,60,0.85], width: drawingActive ? 2 : 2.5, style: drawingActive ? "dash" : "solid" }
       }));
     }
 
-    // Fill polygon when closed
+    // Fill when closed
     if (!drawingActive && clickPoints.length >= 3) {
       const ring = clickPoints.map(p => [p.longitude, p.latitude]);
       ring.push(ring[0]);
-      boundaryLayer.add(new window._setupGraphic({
-        geometry: {
-          type: "polygon",
-          rings: [ring],
-          spatialReference: { wkid: 4326 }
-        },
-        symbol: {
-          type: "simple-fill",
-          color: [26, 122, 60, 0.08],
-          outline: { color: [26, 122, 60, 0], width: 0 }
-        }
+      boundaryLayer.add(new _SetupGraphic({
+        geometry: { type: "polygon", rings: [ring], spatialReference: { wkid: 4326 } },
+        symbol: { type: "simple-fill", color: [26,122,60,0.08], outline: { color: [26,122,60,0], width: 0 } }
       }));
     }
   }
@@ -1224,8 +1141,7 @@
       "esri/geometry/Circle"
     ], async function(esriConfig, Map, MapView, Graphic, GraphicsLayer, Circle) {
 
-      window._setupGraphic = Graphic;
-
+      _SetupGraphic = Graphic;
       esriConfig.apiKey = ARCGIS_KEY;
 
       const setupMap = new Map({ basemap: "satellite" });
@@ -1242,70 +1158,43 @@
       nodeSetupLayer = new GraphicsLayer();
       setupMap.addMany([radiusLayer, boundaryLayer, nodeSetupLayer]);
 
-      // Load node locations and draw trap markers + radius circles
+      // Load node locations → draw markers + radius circles
       const locationMap = await fetchNodeLocations();
-      const nodeCoords = Object.entries(locationMap);
+      const nodeCoords  = Object.entries(locationMap);
 
       nodeCoords.forEach(([nid, coords]) => {
-        // 1-mile pheromone radius circle
         radiusLayer.add(new Graphic({
           geometry: new Circle({
             center: { type: "point", longitude: coords[0], latitude: coords[1] },
-            radius: PHEROMONE_RADIUS_METERS,
-            radiusUnit: "meters",
-            spatialReference: { wkid: 4326 }
+            radius: PHEROMONE_RADIUS_METERS, radiusUnit: "meters", spatialReference: { wkid: 4326 }
           }),
-          symbol: {
-            type: "simple-fill",
-            color: [26, 122, 60, 0.06],
-            outline: { color: [26, 122, 60, 0.45], width: 1.5, style: "dash" }
-          }
+          symbol: { type: "simple-fill", color: [26,122,60,0.06], outline: { color: [26,122,60,0.45], width: 1.5, style: "dash" } }
         }));
 
-        // Distance label (radius annotation)
+        // "1 mi radius" label offset slightly north of each node
         radiusLayer.add(new Graphic({
-          geometry: { type: "point", longitude: coords[0], latitude: coords[1] + 0.0135 },
-          symbol: {
-            type: "text",
-            color: [26, 122, 60, 0.7],
-            text: "1 mi radius",
-            font: { size: 10, family: "IBM Plex Mono, monospace" },
-            horizontalAlignment: "center"
-          }
+          geometry: { type: "point", longitude: coords[0], latitude: coords[1] + 0.0145 },
+          symbol: { type: "text", color: [26,122,60,0.75], text: "1 mi radius", font: { size: 10, family: "monospace" }, horizontalAlignment: "center" }
         }));
 
-        // Trap node marker
         const numMatch = nid.match(/(\d+)$/);
         const nodeNum  = numMatch ? String(parseInt(numMatch[1], 10)) : "?";
 
         nodeSetupLayer.add(new Graphic({
           geometry: { type: "point", longitude: coords[0], latitude: coords[1] },
-          symbol: {
-            type: "simple-marker",
-            color: [220, 38, 38, 0.95],
-            outline: { color: [255, 255, 255], width: 2 },
-            size: "22px"
-          },
+          symbol: { type: "simple-marker", color: [220,38,38,0.95], outline: { color: [255,255,255], width: 2 }, size: "22px" },
           popupTemplate: { title: nid, content: `Lat: ${coords[1].toFixed(5)}<br>Lng: ${coords[0].toFixed(5)}` }
         }));
 
         nodeSetupLayer.add(new Graphic({
           geometry: { type: "point", longitude: coords[0], latitude: coords[1] },
-          symbol: {
-            type: "text",
-            color: [255, 255, 255],
-            text: nodeNum,
-            font: { size: 9, weight: "bold", family: "sans-serif" },
-            horizontalAlignment: "center",
-            verticalAlignment: "middle"
-          }
+          symbol: { type: "text", color: [255,255,255], text: nodeNum, font: { size: 9, weight: "bold", family: "sans-serif" }, horizontalAlignment: "center", verticalAlignment: "middle" }
         }));
       });
 
-      // Center map on nodes
+      // Center on nodes
       if (nodeCoords.length === 1) {
-        setupView.center = nodeCoords[0][1];
-        setupView.zoom = 16;
+        setupView.center = nodeCoords[0][1]; setupView.zoom = 16;
       } else if (nodeCoords.length > 1) {
         const lngs = nodeCoords.map(([,c]) => c[0]);
         const lats = nodeCoords.map(([,c]) => c[1]);
@@ -1319,18 +1208,17 @@
         }, { animate: false }).catch(() => {});
       }
 
-      // Load existing boundary from DB
+      // Load saved boundary from DB
       const existing = await fetchBoundary();
       if (existing && Array.isArray(existing.polygon_points) && existing.polygon_points.length >= 3) {
-        clickPoints = existing.polygon_points;
-        savedBoundaryPoints = [...clickPoints];
+        clickPoints   = existing.polygon_points;
         drawingActive = false;
         redrawBoundary();
         document.getElementById('btn-save-boundary').disabled = false;
         setSetupStatus(`Loaded saved boundary · ${clickPoints.length} points.`, "success");
       }
 
-      // ── MAP CLICK HANDLER ──
+      // Click to place points
       setupView.on("click", function(event) {
         if (!drawingActive) return;
         event.stopPropagation();
@@ -1339,17 +1227,15 @@
         setSetupStatus(`${clickPoints.length} point${clickPoints.length > 1 ? 's' : ''} placed. Double-click to finish.`, "");
       });
 
-      // ── DOUBLE-CLICK TO FINISH ──
+      // Double-click to finish (remove the extra click that fires just before)
       setupView.on("double-click", function(event) {
         if (!drawingActive) return;
         event.stopPropagation();
-        // Remove the extra point that single-click fired just before
         if (clickPoints.length > 0) clickPoints.pop();
         stopDrawing();
       });
     });
   }
-
 </script>
 </body>
 </html>

@@ -418,9 +418,19 @@
   }
 
   async function fetchNodeData() {
+    // Fetch last 5 days of data — no arbitrary row cap
+    const since = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=timestamp_received.asc&limit=1000`,
-      { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+      `${SUPABASE_URL}/rest/v1/trap_data?node_id=eq.${encodeURIComponent(nodeId)}&timestamp_received=gte.${since}&order=timestamp_received.asc`,
+      {
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          // Tell Supabase to return ALL matching rows, not the default 1000 cap
+          "Range-Unit": "items",
+          "Range": "0-9999"
+        }
+      }
     );
     return res.json();
   }
