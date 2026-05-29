@@ -100,6 +100,123 @@
     .legend-dash { width:18px;height:2px;border-top:2px dashed var(--rover);flex-shrink:0; }
     .legend-circle { width:14px;height:14px;border-radius:50%;background:rgba(29,78,216,0.12);border:1.5px dashed rgba(29,78,216,0.4);flex-shrink:0; }
     .no-location-banner { position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(180,83,9,0.92);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 16px;border-radius:6px;pointer-events:none;display:none;z-index:500; }
+
+    /* ── HEATMAP TOGGLES (bottom-left) ── */
+    .heatmap-controls {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 500;
+    }
+
+    .heatmap-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.75);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      padding-left: 2px;
+      margin-bottom: 2px;
+    }
+
+    .heatmap-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 6px 12px;
+      border-radius: 5px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(0,0,0,0.45);
+      color: rgba(255,255,255,0.85);
+      cursor: pointer;
+      transition: all 0.15s;
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .heatmap-btn:hover:not(:disabled) {
+      background: rgba(0,0,0,0.65);
+      border-color: rgba(255,255,255,0.6);
+      color: #fff;
+    }
+
+    .heatmap-btn.active {
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(255,255,255,0.8);
+      color: #fff;
+    }
+
+    .heatmap-btn:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+    }
+
+    .heatmap-btn-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── HEATMAP LEGEND (right side, above map-legend) ── */
+    .heatmap-legend {
+      position: absolute;
+      bottom: 130px;
+      right: 16px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      z-index: 500;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 110px;
+    }
+
+    .heatmap-legend.visible { display: flex; }
+
+    .heatmap-legend-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .heatmap-legend-bar {
+      width: 16px;
+      height: 120px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .heatmap-legend-body {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .heatmap-legend-labels {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--muted);
+    }
   </style>
 </head>
 <body>
@@ -145,6 +262,10 @@
 
   <div class="map-container">
     <div id="map-view"></div>
+
+    <!-- Heatmap canvas rendered underneath markers -->
+    <canvas id="heatmap-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:200;display:none;"></canvas>
+
     <div class="map-overlay">
       <strong id="map-overlay-city">Loading location...</strong>
       Almond orchard monitoring
@@ -155,6 +276,34 @@
       <div class="legend-item"><div class="legend-dash"></div> Rover path</div>
       <div class="legend-item"><div class="legend-circle"></div> WiFi detection radius</div>
     </div>
+
+    <!-- Heatmap gradient legend -->
+    <div class="heatmap-legend" id="heatmap-legend">
+      <div class="heatmap-legend-title" id="heatmap-legend-title">Temperature</div>
+      <div class="heatmap-legend-body">
+        <canvas class="heatmap-legend-bar" id="heatmap-legend-bar" width="16" height="120"></canvas>
+        <div class="heatmap-legend-labels">
+          <span id="heatmap-legend-max">—</span>
+          <span id="heatmap-legend-mid">—</span>
+          <span id="heatmap-legend-min">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Heatmap toggle buttons -->
+    <div class="heatmap-controls">
+      <div class="heatmap-label">Heatmap</div>
+      <button class="heatmap-btn" id="btn-heat-temp" onclick="toggleHeatmap('temp')">
+        <div class="heatmap-btn-dot" style="background:#f97316"></div> Temperature
+      </button>
+      <button class="heatmap-btn" id="btn-heat-hum" onclick="toggleHeatmap('humidity')">
+        <div class="heatmap-btn-dot" style="background:#38bdf8"></div> Humidity
+      </button>
+      <button class="heatmap-btn" disabled id="btn-heat-pest">
+        <div class="heatmap-btn-dot" style="background:#a78bfa"></div> Pest Conc. <span style="font-size:8px;opacity:0.6">SOON</span>
+      </button>
+    </div>
+
     <div class="no-location-banner" id="no-location-banner">
       ⚠ Some nodes have no GPS coordinates — visit node detail to add them
     </div>
@@ -355,6 +504,222 @@
         .bindPopup(`<b style="font-family:monospace">${isLatest ? "Rover — Current" : "Rover — Past"}</b><br>Time: ${new Date(stop.timestamp).toLocaleString()}<br>Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}`);
     });
   });
+
+  // ══════════════════════════════════════════════════════
+  // HEATMAP ENGINE
+  // ══════════════════════════════════════════════════════
+
+  let heatmapActive  = null;   // 'temp' | 'humidity' | null
+  let heatNodeData   = [];     // [{lat, lng, temp, humidity}, ...]
+  let boundaryLatLngs = [];    // [[lat,lng], ...] from saved orchard boundary
+
+  // ── Fetch orchard boundary ────────────────────────────
+  async function fetchOrchardBoundary() {
+    try {
+      const res  = await fetch(`${SUPABASE_URL}/rest/v1/orchard_boundaries?select=polygon_points&order=id.asc&limit=1`, {
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+      });
+      const rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) return [];
+      const pts = rows[0].polygon_points;
+      if (!Array.isArray(pts) || pts.length < 3) return [];
+      // Handle both {lat,lng} and legacy {latitude,longitude} formats
+      return pts.map(p => [p.lat ?? p.latitude, p.lng ?? p.longitude]);
+    } catch { return []; }
+  }
+
+  // ── Fetch latest sensor reading per node ─────────────
+  async function fetchHeatmapNodeData() {
+    const locationMap = await (async () => {
+      const rows = await sbGet("node_locations?select=node_id,latitude,longitude");
+      const m = {};
+      if (Array.isArray(rows)) rows.forEach(r => { m[r.node_id] = [parseFloat(r.latitude), parseFloat(r.longitude)]; });
+      return m;
+    })();
+
+    const nodeIds = Object.keys(locationMap);
+    const result  = [];
+
+    for (const nodeId of nodeIds) {
+      const coords = locationMap[nodeId];
+      const rows   = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=timestamp_received.desc&limit=20`);
+      if (!Array.isArray(rows)) continue;
+      const tempRow = rows.find(r => r.event_type === "temp");
+      const humRow  = rows.find(r => r.event_type === "humidity");
+      result.push({
+        lat:      coords[0],
+        lng:      coords[1],
+        temp:     tempRow ? ((parseFloat(tempRow.event_value) * 9/5) + 32) : null,
+        humidity: humRow  ? parseFloat(humRow.event_value) : null
+      });
+    }
+    return result;
+  }
+
+  // ── Point-in-polygon (ray casting) ───────────────────
+  function pointInPolygon(lat, lng, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i][1], yi = poly[i][0];
+      const xj = poly[j][1], yj = poly[j][0];
+      if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
+  // ── IDW interpolation ────────────────────────────────
+  function idw(queryLat, queryLng, nodes, field, power = 2) {
+    let weightSum = 0, valueSum = 0;
+    for (const n of nodes) {
+      if (n[field] === null) continue;
+      const dLat = queryLat - n.lat;
+      const dLng = queryLng - n.lng;
+      const dist  = Math.sqrt(dLat * dLat + dLng * dLng);
+      if (dist < 1e-10) return n[field]; // exactly on a node
+      const w = 1 / Math.pow(dist, power);
+      weightSum += w;
+      valueSum  += w * n[field];
+    }
+    return weightSum === 0 ? null : valueSum / weightSum;
+  }
+
+  // ── Value → blue-to-red RGBA ─────────────────────────
+  function valueToColor(t) {
+    // t in [0,1]: 0=cool blue, 0.5=green/yellow, 1=hot red
+    // Uses a 4-stop gradient: blue → cyan → yellow → red
+    const stops = [
+      [0,    [0,   0,   220]],
+      [0.33, [0,   200, 220]],
+      [0.66, [250, 220, 0  ]],
+      [1.0,  [220, 20,  20 ]]
+    ];
+    for (let i = 1; i < stops.length; i++) {
+      if (t <= stops[i][0]) {
+        const s = (t - stops[i-1][0]) / (stops[i][0] - stops[i-1][0]);
+        const a = stops[i-1][1], b = stops[i][1];
+        return [
+          Math.round(a[0] + s * (b[0] - a[0])),
+          Math.round(a[1] + s * (b[1] - a[1])),
+          Math.round(a[2] + s * (b[2] - a[2])),
+          175   // alpha ~69% opacity
+        ];
+      }
+    }
+    return [220, 20, 20, 175];
+  }
+
+  // ── Draw legend bar canvas ────────────────────────────
+  function drawLegendBar(minVal, maxVal, field) {
+    const canvas = document.getElementById("heatmap-legend-bar");
+    const ctx    = canvas.getContext("2d");
+    const h      = canvas.height;
+    for (let y = 0; y < h; y++) {
+      const t     = 1 - y / (h - 1);  // top=max, bottom=min
+      const [r,g,b] = valueToColor(t);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(0, y, 16, 1);
+    }
+    const mid = (minVal + maxVal) / 2;
+    const unit = field === "temp" ? "°F" : "%";
+    document.getElementById("heatmap-legend-max").textContent = maxVal.toFixed(1) + unit;
+    document.getElementById("heatmap-legend-mid").textContent = mid.toFixed(1) + unit;
+    document.getElementById("heatmap-legend-min").textContent = minVal.toFixed(1) + unit;
+    document.getElementById("heatmap-legend-title").textContent = field === "temp" ? "Temperature" : "Humidity";
+  }
+
+  // ── Main render function ──────────────────────────────
+  function renderHeatmap(field) {
+    const canvas    = document.getElementById("heatmap-canvas");
+    const mapEl     = document.getElementById("map-view");
+    const W         = mapEl.offsetWidth;
+    const H         = mapEl.offsetHeight;
+    canvas.width    = W;
+    canvas.height   = H;
+    const ctx       = canvas.getContext("2d");
+    ctx.clearRect(0, 0, W, H);
+
+    const validNodes = heatNodeData.filter(n => n[field] !== null);
+    if (validNodes.length === 0) return;
+
+    const values = validNodes.map(n => n[field]);
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    const range  = maxVal - minVal || 1;
+
+    // Resolution: sample every N pixels for performance
+    const step   = 4;
+    const imgData = ctx.createImageData(W, H);
+
+    for (let px = 0; px < W; px += step) {
+      for (let py = 0; py < H; py += step) {
+        // Convert pixel → lat/lng using Leaflet
+        const latlng = map.containerPointToLatLng([px, py]);
+        const lat = latlng.lat, lng = latlng.lng;
+
+        // Only draw inside the boundary (if one exists)
+        if (boundaryLatLngs.length >= 3 && !pointInPolygon(lat, lng, boundaryLatLngs)) continue;
+
+        const val = idw(lat, lng, validNodes, field);
+        if (val === null) continue;
+        const t   = (val - minVal) / range;
+        const [r,g,b,a] = valueToColor(t);
+
+        // Fill a step×step block of pixels
+        for (let dx = 0; dx < step && px + dx < W; dx++) {
+          for (let dy = 0; dy < step && py + dy < H; dy++) {
+            const idx = ((py + dy) * W + (px + dx)) * 4;
+            imgData.data[idx]   = r;
+            imgData.data[idx+1] = g;
+            imgData.data[idx+2] = b;
+            imgData.data[idx+3] = a;
+          }
+        }
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    drawLegendBar(minVal, maxVal, field);
+    document.getElementById("heatmap-legend").classList.add("visible");
+  }
+
+  function clearHeatmap() {
+    const canvas = document.getElementById("heatmap-canvas");
+    canvas.style.display = "none";
+    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById("heatmap-legend").classList.remove("visible");
+  }
+
+  // Re-render on map move/zoom so the overlay stays aligned
+  map.on("moveend zoomend", function() {
+    if (heatmapActive) renderHeatmap(heatmapActive);
+  });
+
+  async function toggleHeatmap(field) {
+    // If already active, turn it off
+    if (heatmapActive === field) {
+      heatmapActive = null;
+      clearHeatmap();
+      document.querySelectorAll(".heatmap-btn").forEach(b => b.classList.remove("active"));
+      return;
+    }
+
+    // Switch active state
+    heatmapActive = field;
+    document.querySelectorAll(".heatmap-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById(field === "temp" ? "btn-heat-temp" : "btn-heat-hum").classList.add("active");
+
+    // Load data if not already loaded
+    if (heatNodeData.length === 0) {
+      heatNodeData      = await fetchHeatmapNodeData();
+      boundaryLatLngs   = await fetchOrchardBoundary();
+    }
+
+    const canvas = document.getElementById("heatmap-canvas");
+    canvas.style.display = "block";
+    renderHeatmap(field);
+  }
 </script>
 </body>
 </html>
