@@ -841,7 +841,7 @@
     document.getElementById('panel-' + name).classList.add('active');
     if (name === 'setup' && !setupMapInitialized) {
       setupMapInitialized = true;
-      initSetupMap();
+      setTimeout(initSetupMap, 50);
     }
   }
 
