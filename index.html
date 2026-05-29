@@ -110,6 +110,12 @@
       flex-direction: column;
       gap: 6px;
       z-index: 500;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     }
 
     .heatmap-label {
@@ -117,8 +123,7 @@
       font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      color: rgba(255,255,255,0.75);
-      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      color: var(--muted);
       padding-left: 2px;
       margin-bottom: 2px;
     }
@@ -128,14 +133,13 @@
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      padding: 6px 12px;
-      border-radius: 5px;
-      border: 1px solid rgba(255,255,255,0.3);
-      background: rgba(0,0,0,0.45);
-      color: rgba(255,255,255,0.85);
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
       cursor: pointer;
       transition: all 0.15s;
-      backdrop-filter: blur(6px);
       display: flex;
       align-items: center;
       gap: 7px;
@@ -143,20 +147,24 @@
     }
 
     .heatmap-btn:hover:not(:disabled) {
-      background: rgba(0,0,0,0.65);
-      border-color: rgba(255,255,255,0.6);
-      color: #fff;
+      border-color: var(--accent);
+      color: var(--accent);
     }
 
     .heatmap-btn.active {
-      background: rgba(255,255,255,0.18);
-      border-color: rgba(255,255,255,0.8);
+      background: var(--text);
+      border-color: var(--text);
       color: #fff;
     }
 
+    .heatmap-btn.active .heatmap-btn-dot {
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.4);
+    }
+
     .heatmap-btn:disabled {
-      opacity: 0.38;
+      opacity: 0.45;
       cursor: not-allowed;
+      color: var(--muted);
     }
 
     .heatmap-btn-dot {
@@ -633,11 +641,21 @@
   function renderHeatmap(field) {
     const canvas    = document.getElementById("heatmap-canvas");
     const mapEl     = document.getElementById("map-view");
-    const W         = mapEl.offsetWidth;
-    const H         = mapEl.offsetHeight;
-    canvas.width    = W;
-    canvas.height   = H;
-    const ctx       = canvas.getContext("2d");
+
+    // Use actual pixel dimensions of the map container
+    const rect  = mapEl.getBoundingClientRect();
+    const W     = Math.floor(rect.width);
+    const H     = Math.floor(rect.height);
+    if (W === 0 || H === 0) return;
+
+    // Set canvas pixel dimensions to match map container exactly
+    canvas.width  = W;
+    canvas.height = H;
+    canvas.style.width  = W + "px";
+    canvas.style.height = H + "px";
+    canvas.style.display = "block";
+
+    const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, W, H);
 
     const validNodes = heatNodeData.filter(n => n[field] !== null);
@@ -687,7 +705,8 @@
   function clearHeatmap() {
     const canvas = document.getElementById("heatmap-canvas");
     canvas.style.display = "none";
-    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width  = 0;
+    canvas.height = 0;
     document.getElementById("heatmap-legend").classList.remove("visible");
   }
 
