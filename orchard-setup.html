@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Orchard Setup — SmartTrap</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css"/>
+  <script src="https://js.arcgis.com/4.29/"></script>
+
+  <style>
+    :root {
+      --bg:      #f5f6f4;
+      --surface: #ffffff;
+      --border:  #e2e5e2;
+      --accent:  #1a7a3c;
+      --accent2: #2da653;
+      --warn:    #b45309;
+      --danger:  #dc2626;
+      --text:    #1a1f1a;
+      --muted:   #6b7a6c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 52px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 16px; }
+
+    .back-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+
+    .back-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+    .logo {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .page-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── TOOLBAR ── */
+    .setup-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    .tool-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 7px 16px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tool-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .tool-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .tool-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+    .tool-btn.save-btn {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      margin-left: auto;
+    }
+
+    .tool-btn.save-btn:hover { background: var(--accent2); border-color: var(--accent2); }
+    .tool-btn.save-btn:disabled {
+      background: var(--border);
+      border-color: var(--border);
+      color: var(--muted);
+      cursor: not-allowed;
+    }
+
+    .toolbar-divider { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+
+    .toolbar-status {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      padding: 0 4px;
+    }
+
+    .toolbar-status.success { color: var(--accent); }
+    .toolbar-status.error   { color: var(--danger); }
+
+    /* ── MAP ── */
+    .map-wrap {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    #setup-map-view {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+    }
+
+    /* Floating hint banner while drawing */
+    .draw-hint {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26, 122, 60, 0.92);
+      color: #fff;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      pointer-events: none;
+      white-space: nowrap;
+      display: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      z-index: 10;
+    }
+
+    /* Legend */
+    .map-legend {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(255,255,255,0.93);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .legend-item { display: flex; align-items: center; gap: 8px; }
+
+    .leg-line {
+      width: 18px; height: 3px;
+      background: rgba(26,122,60,0.7);
+      border-radius: 2px; flex-shrink: 0;
+    }
+
+    .leg-radius {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: rgba(26,122,60,0.08);
+      border: 1.5px dashed rgba(26,122,60,0.5);
+      flex-shrink: 0;
+    }
+
+    .leg-node {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--danger);
+      border: 2px solid white;
+      box-shadow: 0 0 0 1px var(--danger);
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <a class="back-btn" href="index.html">← Dashboard</a>
+    <div class="logo">SmartTrap</div>
+  </div>
+  <div class="page-label">Orchard Setup</div>
+</header>
+
+<div class="setup-toolbar">
+  <span class="toolbar-label">Boundary:</span>
+  <button class="tool-btn" id="btn-draw" onclick="startDrawing()">✏ Draw Orchard</button>
+  <button class="tool-btn danger" id="btn-clear" onclick="clearBoundary()">✕ Clear</button>
+  <div class="toolbar-divider"></div>
+  <span class="toolbar-label">Coverage:</span>
+  <button class="tool-btn" id="btn-toggle-radius" onclick="toggleRadius()">◎ Hide 1-mi Radius</button>
+  <div class="toolbar-divider"></div>
+  <span class="toolbar-status" id="setup-status"></span>
+  <button class="tool-btn save-btn" id="btn-save" onclick="saveBoundary()" disabled>💾 Save Boundary</button>
+</div>
+
+<div class="map-wrap">
+  <div id="setup-map-view"></div>
+  <div class="draw-hint" id="draw-hint">Click to place boundary points · Double-click to finish</div>
+  <div class="map-legend">
+    <div class="legend-item"><div class="leg-line"></div> Orchard boundary</div>
+    <div class="legend-item"><div class="leg-radius"></div> 1-mile pheromone radius</div>
+    <div class="legend-item"><div class="leg-node"></div> Trap node</div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://nqhmvymrikjnkvtxtcst.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_e-UEF6y_4kk-QSFb7CfzHQ_lgLVSG6l";
+  const ARCGIS_KEY   = "AAPTaVBgWcwmkBkx6iqYw7uXtbQ..Osa6s3wYR1qeRc-FHJv-7xo0qGUcE_UXWBIy5Ugb6hg_DkQRKOfWMrceCvMXt_LcWmXGYoruj5TTc-rTFi58dvkeNDUw28EyxSIBq89chY_-NSW5X56boL-xg2Ikb_NuX21QzxzD4YW8w8bMDICciDZZhbfEfFdyNbrImabIrcBz3oqucBTAdiVVBM9eS9m1APnBewxY5p_D2w-KBJ0LWZyd5qqKXj6L_mqQf-5ebYhe-DILAguQGpyAAT1_EKuxh5JG";
+
+  const DEFAULT_CENTER        = [-120.93426, 37.35368];
+  const PHEROMONE_RADIUS_M    = 1609.34; // 1 mile in metres
+
+  let mapView       = null;
+  let boundaryLayer = null;
+  let radiusLayer   = null;
+  let nodeLayer     = null;
+  let GfxClass      = null;
+
+  let drawingActive = false;
+  let clickPoints   = [];   // [{longitude, latitude}, ...]
+  let showRadius    = true;
+
+  // ── SUPABASE HELPERS ─────────────────────────────────
+  async function sbFetch(path, opts = {}) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        ...opts.headers
+      },
+      ...opts
+    });
+    return opts.raw ? res : res.json();
+  }
+
+  async function fetchNodeLocations() {
+    const rows = await sbFetch("node_locations?select=node_id,latitude,longitude");
+    const map  = {};
+    if (Array.isArray(rows)) {
+      rows.forEach(r => { map[r.node_id] = [parseFloat(r.longitude), parseFloat(r.latitude)]; });
+    }
+    return map;
+  }
+
+  async function fetchBoundary() {
+    const rows = await sbFetch("orchard_boundaries?select=id,polygon_points&order=id.asc&limit=1");
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+  }
+
+  async function saveBoundary() {
+    if (clickPoints.length < 3) { setStatus("Need at least 3 points.", "error"); return; }
+    const btn = document.getElementById('btn-save');
+    btn.disabled = true; btn.textContent = "Saving...";
+    setStatus("", "");
+    try {
+      const existing = await fetchBoundary();
+      const body = existing
+        ? { polygon_points: clickPoints, updated_at: new Date().toISOString() }
+        : { name: "Orchard 1", polygon_points: clickPoints };
+      const url = existing
+        ? `orchard_boundaries?id=eq.${existing.id}`
+        : `orchard_boundaries`;
+      const res = await sbFetch(url, {
+        method: existing ? "PATCH" : "POST",
+        raw: true,
+        headers: { "Prefer": "return=minimal" },
+        body: JSON.stringify(body)
+      });
+      setStatus(res.ok ? `✓ Saved · ${clickPoints.length} points.` : `Save failed (${res.status})`, res.ok ? "success" : "error");
+    } catch(e) { setStatus("Save failed: " + e.message, "error"); }
+    btn.textContent = "💾 Save Boundary";
+    btn.disabled = clickPoints.length < 3;
+  }
+
+  // ── UI HELPERS ────────────────────────────────────────
+  function setStatus(msg, cls) {
+    const el = document.getElementById('setup-status');
+    el.textContent = msg;
+    el.className   = 'toolbar-status' + (cls ? ' ' + cls : '');
+  }
+
+  function startDrawing() {
+    drawingActive = !drawingActive;
+    const btn = document.getElementById('btn-draw');
+    if (drawingActive) {
+      clickPoints = [];
+      redraw();
+      btn.classList.add('active');
+      btn.textContent = "⏹ Stop Drawing";
+      document.getElementById('draw-hint').style.display = 'block';
+      mapView.cursor = "crosshair";
+      setStatus("Click to place points. Double-click to finish.", "");
+    } else {
+      finishDrawing();
+    }
+  }
+
+  function finishDrawing() {
+    drawingActive = false;
+    const btn = document.getElementById('btn-draw');
+    btn.classList.remove('active');
+    btn.textContent = "✏ Draw Orchard";
+    document.getElementById('draw-hint').style.display = 'none';
+    mapView.cursor = "default";
+    redraw();
+    if (clickPoints.length >= 3) {
+      document.getElementById('btn-save').disabled = false;
+      setStatus(`${clickPoints.length} points · ready to save.`, "success");
+    } else if (clickPoints.length > 0) {
+      setStatus("Need at least 3 points for a valid boundary.", "error");
+    } else {
+      setStatus("", "");
+    }
+  }
+
+  function clearBoundary() {
+    clickPoints   = [];
+    drawingActive = false;
+    const btn = document.getElementById('btn-draw');
+    btn.classList.remove('active');
+    btn.textContent = "✏ Draw Orchard";
+    document.getElementById('draw-hint').style.display = 'none';
+    mapView.cursor = "default";
+    document.getElementById('btn-save').disabled = true;
+    setStatus("Boundary cleared.", "");
+    redraw();
+  }
+
+  function toggleRadius() {
+    showRadius = !showRadius;
+    if (radiusLayer) radiusLayer.visible = showRadius;
+    const btn = document.getElementById('btn-toggle-radius');
+    btn.textContent = showRadius ? "◎ Hide 1-mi Radius" : "◎ Show 1-mi Radius";
+    btn.classList.toggle('active', !showRadius);
+  }
+
+  // ── BOUNDARY DRAWING ─────────────────────────────────
+  function redraw() {
+    if (!boundaryLayer || !GfxClass) return;
+    boundaryLayer.removeAll();
+    if (clickPoints.length === 0) return;
+
+    // Individual point markers
+    clickPoints.forEach((pt, i) => {
+      boundaryLayer.add(new GfxClass({
+        geometry: { type: "point", longitude: pt.longitude, latitude: pt.latitude },
+        symbol: {
+          type: "simple-marker",
+          color: [26, 122, 60, 0.9],
+          outline: { color: [255, 255, 255], width: 1.5 },
+          size: i === 0 ? "13px" : "9px"
+        }
+      }));
+    });
+
+    // Line connecting all points
+    if (clickPoints.length > 1) {
+      const coords = clickPoints.map(p => [p.longitude, p.latitude]);
+      const path   = drawingActive ? coords : [...coords, coords[0]];
+      boundaryLayer.add(new GfxClass({
+        geometry: { type: "polyline", paths: [path], spatialReference: { wkid: 4326 } },
+        symbol: {
+          type: "simple-line",
+          color: [26, 122, 60, 0.85],
+          width: drawingActive ? 2 : 2.5,
+          style: drawingActive ? "dash" : "solid"
+        }
+      }));
+    }
+
+    // Filled polygon once closed
+    if (!drawingActive && clickPoints.length >= 3) {
+      const ring = clickPoints.map(p => [p.longitude, p.latitude]);
+      ring.push(ring[0]);
+      boundaryLayer.add(new GfxClass({
+        geometry: { type: "polygon", rings: [ring], spatialReference: { wkid: 4326 } },
+        symbol: {
+          type: "simple-fill",
+          color: [26, 122, 60, 0.09],
+          outline: { color: [26, 122, 60, 0], width: 0 }
+        }
+      }));
+    }
+  }
+
+  // ── ARCGIS INIT ──────────────────────────────────────
+  require([
+    "esri/config",
+    "esri/Map",
+    "esri/views/MapView",
+    "esri/Graphic",
+    "esri/layers/GraphicsLayer",
+    "esri/geometry/Circle"
+  ], async function(esriConfig, Map, MapView, Graphic, GraphicsLayer, Circle) {
+
+    GfxClass = Graphic;
+    esriConfig.apiKey = ARCGIS_KEY;
+
+    const esriMap = new Map({ basemap: "satellite" });
+    mapView = new MapView({
+      container: "setup-map-view",
+      map: esriMap,
+      center: DEFAULT_CENTER,
+      zoom: 15,
+      ui: { components: ["zoom"] }
+    });
+
+    boundaryLayer = new GraphicsLayer();
+    radiusLayer   = new GraphicsLayer();
+    nodeLayer     = new GraphicsLayer();
+    esriMap.addMany([radiusLayer, boundaryLayer, nodeLayer]);
+
+    // ── Load nodes and draw markers + radius circles ──
+    const locationMap = await fetchNodeLocations();
+    const nodeEntries = Object.entries(locationMap);
+
+    nodeEntries.forEach(([nid, coords]) => {
+      // 1-mile radius circle
+      radiusLayer.add(new Graphic({
+        geometry: new Circle({
+          center: { type: "point", longitude: coords[0], latitude: coords[1] },
+          radius: PHEROMONE_RADIUS_M,
+          radiusUnit: "meters",
+          spatialReference: { wkid: 4326 }
+        }),
+        symbol: {
+          type: "simple-fill",
+          color: [26, 122, 60, 0.06],
+          outline: { color: [26, 122, 60, 0.45], width: 1.5, style: "dash" }
+        }
+      }));
+
+      // Radius label slightly above each node
+      radiusLayer.add(new Graphic({
+        geometry: { type: "point", longitude: coords[0], latitude: coords[1] + 0.0145 },
+        symbol: {
+          type: "text",
+          color: [26, 122, 60, 0.75],
+          text: "1 mi radius",
+          font: { size: 10, family: "monospace" },
+          horizontalAlignment: "center"
+        }
+      }));
+
+      // Node marker
+      const numMatch = nid.match(/(\d+)$/);
+      const nodeNum  = numMatch ? String(parseInt(numMatch[1], 10)) : "?";
+
+      nodeLayer.add(new Graphic({
+        geometry: { type: "point", longitude: coords[0], latitude: coords[1] },
+        symbol: {
+          type: "simple-marker",
+          color: [220, 38, 38, 0.95],
+          outline: { color: [255, 255, 255], width: 2 },
+          size: "22px"
+        },
+        popupTemplate: {
+          title: nid,
+          content: `Lat: ${coords[1].toFixed(5)}<br>Lng: ${coords[0].toFixed(5)}`
+        }
+      }));
+
+      nodeLayer.add(new Graphic({
+        geometry: { type: "point", longitude: coords[0], latitude: coords[1] },
+        symbol: {
+          type: "text",
+          color: [255, 255, 255],
+          text: nodeNum,
+          font: { size: 9, weight: "bold", family: "sans-serif" },
+          horizontalAlignment: "center",
+          verticalAlignment: "middle"
+        }
+      }));
+    });
+
+    // ── Center map on all nodes with padding ──
+    if (nodeEntries.length === 1) {
+      mapView.center = nodeEntries[0][1];
+      mapView.zoom   = 15;
+    } else if (nodeEntries.length > 1) {
+      const lngs    = nodeEntries.map(([,c]) => c[0]);
+      const lats    = nodeEntries.map(([,c]) => c[1]);
+      const lngSpan = Math.max(Math.max(...lngs) - Math.min(...lngs), 0.002);
+      const latSpan = Math.max(Math.max(...lats) - Math.min(...lats), 0.002);
+      const padLng  = lngSpan * 0.35;
+      const padLat  = latSpan * 0.35;
+      mapView.goTo({
+        target: {
+          type: "extent",
+          xmin: Math.min(...lngs) - padLng,
+          ymin: Math.min(...lats) - padLat,
+          xmax: Math.max(...lngs) + padLng,
+          ymax: Math.max(...lats) + padLat,
+          spatialReference: { wkid: 4326 }
+        }
+      }, { animate: false }).catch(() => {});
+    }
+
+    // ── Load saved boundary from Supabase ──
+    const saved = await fetchBoundary();
+    if (saved && Array.isArray(saved.polygon_points) && saved.polygon_points.length >= 3) {
+      clickPoints   = saved.polygon_points;
+      drawingActive = false;
+      redraw();
+      document.getElementById('btn-save').disabled = false;
+      setStatus(`Loaded saved boundary · ${clickPoints.length} points.`, "success");
+    }
+
+    // ── Click handler: place boundary points ──
+    mapView.on("click", function(event) {
+      if (!drawingActive) return;
+      event.stopPropagation();
+      clickPoints.push({
+        longitude: event.mapPoint.longitude,
+        latitude:  event.mapPoint.latitude
+      });
+      redraw();
+      setStatus(`${clickPoints.length} point${clickPoints.length > 1 ? 's' : ''} placed. Double-click to finish.`, "");
+    });
+
+    // ── Double-click: finish drawing ──
+    mapView.on("double-click", function(event) {
+      if (!drawingActive) return;
+      event.stopPropagation();
+      // Remove the extra single-click point that fires just before double-click
+      if (clickPoints.length > 0) clickPoints.pop();
+      finishDrawing();
+    });
+  });
+</script>
+</body>
+</html>
