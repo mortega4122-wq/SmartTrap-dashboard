@@ -384,6 +384,183 @@
       pointer-events: none;
       display: none;
     }
+
+    /* ── TAB NAV ── */
+    .tab-nav {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      height: 38px;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 0 14px;
+      height: 38px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      margin-bottom: -1px;
+    }
+
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── PANELS ── */
+    .panel { display: none; flex: 1; overflow: hidden; min-height: 0; }
+    .panel.active { display: flex; }
+
+    /* ── ORCHARD SETUP PANEL ── */
+    #panel-setup {
+      flex-direction: column;
+      position: relative;
+    }
+
+    .setup-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-right: 4px;
+    }
+
+    .tool-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 6px 14px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tool-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .tool-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .tool-btn.danger:hover { border-color: #dc2626; color: #dc2626; }
+
+    .tool-btn.save-btn {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      margin-left: auto;
+    }
+
+    .tool-btn.save-btn:hover { background: var(--accent2); border-color: var(--accent2); }
+    .tool-btn.save-btn:disabled { background: var(--border); border-color: var(--border); color: var(--muted); cursor: not-allowed; }
+
+    .toolbar-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      margin: 0 4px;
+    }
+
+    .toolbar-status {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      padding: 0 6px;
+    }
+
+    .toolbar-status.success { color: var(--accent); }
+    .toolbar-status.error   { color: #dc2626; }
+
+    #setup-map-view { flex: 1; width: 100%; height: 100%; min-height: 0; }
+
+    .setup-legend {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .setup-hint {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26,122,60,0.92);
+      color: #fff;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      padding: 7px 16px;
+      border-radius: 6px;
+      pointer-events: none;
+      white-space: nowrap;
+      display: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .legend-swatch-green {
+      width: 18px; height: 3px;
+      background: rgba(26,122,60,0.7);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .legend-swatch-circle {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: rgba(26,122,60,0.08);
+      border: 1.5px dashed rgba(26,122,60,0.5);
+      flex-shrink: 0;
+    }
+
+    .legend-dot-red {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #dc2626;
+      border: 2px solid white;
+      box-shadow: 0 0 0 1px #dc2626;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -399,6 +576,14 @@
   </div>
 </header>
 
+<!-- ── TAB NAVIGATION ── -->
+<nav class="tab-nav">
+  <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+  <button class="tab-btn" id="tab-setup" onclick="switchTab('setup')">Orchard Setup</button>
+</nav>
+
+<!-- ── DASHBOARD PANEL ── -->
+<div class="panel active" id="panel-dashboard">
 <div class="main">
 
   <div class="sidebar">
@@ -456,6 +641,32 @@
     </div>
   </div>
 
+</div>
+</div><!-- end panel-dashboard -->
+
+<!-- ── ORCHARD SETUP PANEL ── -->
+<div class="panel" id="panel-setup">
+  <div class="setup-toolbar">
+    <span class="toolbar-label">Boundary:</span>
+    <button class="tool-btn" id="btn-draw" onclick="startDrawing()">✏ Draw Orchard</button>
+    <button class="tool-btn danger" id="btn-clear" onclick="clearBoundary()">✕ Clear</button>
+    <div class="toolbar-divider"></div>
+    <span class="toolbar-label">Coverage:</span>
+    <button class="tool-btn" id="btn-toggle-radius" onclick="toggleRadiusLayer()">◎ Show 1-mi Radius</button>
+    <div class="toolbar-divider"></div>
+    <span class="toolbar-status" id="setup-status"></span>
+    <button class="tool-btn save-btn" id="btn-save-boundary" onclick="saveBoundary()" disabled>💾 Save Boundary</button>
+  </div>
+
+  <div style="flex:1; position:relative; display:flex; flex-direction:column; min-height:0;">
+    <div id="setup-map-view"></div>
+    <div class="setup-hint" id="setup-hint">Click to add boundary points · Double-click to finish</div>
+    <div class="setup-legend">
+      <div class="legend-item"><div class="legend-swatch-green"></div> Orchard boundary</div>
+      <div class="legend-item"><div class="legend-swatch-circle"></div> 1-mile pheromone radius</div>
+      <div class="legend-item"><div class="legend-dot-red"></div> Trap node</div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -769,6 +980,376 @@
 
     });
   });
+
+  // =====================================================
+  // TAB SWITCHING
+  // =====================================================
+
+  let setupMapInitialized = false;
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+
+    // Lazy-init the setup map the first time the tab is opened
+    if (name === 'setup' && !setupMapInitialized) {
+      setupMapInitialized = true;
+      initSetupMap();
+    }
+  }
+
+  // =====================================================
+  // ORCHARD SETUP MAP
+  // =====================================================
+
+  const PHEROMONE_RADIUS_MILES = 1;
+  const PHEROMONE_RADIUS_METERS = PHEROMONE_RADIUS_MILES * 1609.34;
+
+  let setupView       = null;
+  let boundaryLayer   = null;
+  let radiusLayer     = null;
+  let nodeSetupLayer  = null;
+  let drawingActive   = false;
+  let clickPoints     = [];   // [{longitude, latitude}]
+  let sketchPoints    = [];   // live points before close
+  let showRadius      = true;
+
+  // Saved boundary polygon points from DB
+  let savedBoundaryPoints = [];
+
+  async function fetchBoundary() {
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/orchard_boundaries?select=id,polygon_points&order=id.asc&limit=1`,
+        { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+      );
+      const rows = await res.json();
+      return rows.length > 0 ? rows[0] : null;
+    } catch { return null; }
+  }
+
+  async function saveBoundary() {
+    if (clickPoints.length < 3) {
+      setSetupStatus("Need at least 3 points to save a boundary.", "error");
+      return;
+    }
+
+    const btn = document.getElementById('btn-save-boundary');
+    btn.disabled = true;
+    btn.textContent = "Saving...";
+    setSetupStatus("", "");
+
+    try {
+      const existing = await fetchBoundary();
+      const payload = JSON.stringify({ polygon_points: clickPoints, updated_at: new Date().toISOString() });
+
+      let res;
+      if (existing) {
+        res = await fetch(
+          `${SUPABASE_URL}/rest/v1/orchard_boundaries?id=eq.${existing.id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "apikey": SUPABASE_KEY,
+              "Authorization": `Bearer ${SUPABASE_KEY}`,
+              "Content-Type": "application/json",
+              "Prefer": "return=minimal"
+            },
+            body: payload
+          }
+        );
+      } else {
+        res = await fetch(
+          `${SUPABASE_URL}/rest/v1/orchard_boundaries`,
+          {
+            method: "POST",
+            headers: {
+              "apikey": SUPABASE_KEY,
+              "Authorization": `Bearer ${SUPABASE_KEY}`,
+              "Content-Type": "application/json",
+              "Prefer": "return=minimal"
+            },
+            body: JSON.stringify({ name: "Orchard 1", polygon_points: clickPoints })
+          }
+        );
+      }
+
+      if (res.ok) {
+        savedBoundaryPoints = [...clickPoints];
+        setSetupStatus("✓ Boundary saved.", "success");
+      } else {
+        const txt = await res.text();
+        setSetupStatus("Save failed: " + txt, "error");
+      }
+    } catch (err) {
+      setSetupStatus("Save failed: " + err.message, "error");
+    }
+
+    btn.textContent = "💾 Save Boundary";
+    btn.disabled = clickPoints.length < 3;
+  }
+
+  function setSetupStatus(msg, cls) {
+    const el = document.getElementById('setup-status');
+    el.textContent = msg;
+    el.className = 'toolbar-status' + (cls ? ' ' + cls : '');
+  }
+
+  function startDrawing() {
+    if (!setupView) return;
+    drawingActive = !drawingActive;
+    const btn = document.getElementById('btn-draw');
+
+    if (drawingActive) {
+      // Clear existing points and start fresh
+      clickPoints = [];
+      redrawBoundary();
+      btn.classList.add('active');
+      btn.textContent = "⏹ Stop Drawing";
+      document.getElementById('setup-hint').style.display = 'block';
+      setupView.cursor = "crosshair";
+      setSetupStatus("Click to place boundary points. Double-click to finish.", "");
+    } else {
+      stopDrawing();
+    }
+  }
+
+  function stopDrawing() {
+    drawingActive = false;
+    const btn = document.getElementById('btn-draw');
+    btn.classList.remove('active');
+    btn.textContent = "✏ Draw Orchard";
+    document.getElementById('setup-hint').style.display = 'none';
+    setupView.cursor = "default";
+
+    if (clickPoints.length >= 3) {
+      setSetupStatus(`${clickPoints.length} points · boundary ready to save.`, "");
+      document.getElementById('btn-save-boundary').disabled = false;
+    } else if (clickPoints.length > 0) {
+      setSetupStatus("Need at least 3 points for a valid boundary.", "error");
+    } else {
+      setSetupStatus("", "");
+    }
+    redrawBoundary();
+  }
+
+  function clearBoundary() {
+    clickPoints = [];
+    drawingActive = false;
+    const btn = document.getElementById('btn-draw');
+    btn.classList.remove('active');
+    btn.textContent = "✏ Draw Orchard";
+    document.getElementById('setup-hint').style.display = 'none';
+    if (setupView) setupView.cursor = "default";
+    document.getElementById('btn-save-boundary').disabled = true;
+    setSetupStatus("Boundary cleared.", "");
+    redrawBoundary();
+  }
+
+  function toggleRadiusLayer() {
+    showRadius = !showRadius;
+    const btn = document.getElementById('btn-toggle-radius');
+    if (radiusLayer) radiusLayer.visible = showRadius;
+    btn.textContent = showRadius ? "◎ Hide 1-mi Radius" : "◎ Show 1-mi Radius";
+    btn.classList.toggle('active', showRadius);
+  }
+
+  function redrawBoundary() {
+    if (!boundaryLayer) return;
+    boundaryLayer.removeAll();
+
+    if (clickPoints.length === 0) return;
+
+    // Draw each clicked point as a small dot
+    clickPoints.forEach((pt, i) => {
+      boundaryLayer.add(new window._setupGraphic({
+        geometry: { type: "point", longitude: pt.longitude, latitude: pt.latitude },
+        symbol: {
+          type: "simple-marker",
+          color: [26, 122, 60, 0.9],
+          outline: { color: [255, 255, 255], width: 1.5 },
+          size: i === 0 ? "12px" : "8px"
+        }
+      }));
+    });
+
+    // Draw lines connecting points
+    if (clickPoints.length > 1) {
+      const coords = clickPoints.map(p => [p.longitude, p.latitude]);
+      // If not drawing, close the polygon
+      const path = drawingActive ? coords : [...coords, coords[0]];
+      boundaryLayer.add(new window._setupGraphic({
+        geometry: {
+          type: "polyline",
+          paths: [path],
+          spatialReference: { wkid: 4326 }
+        },
+        symbol: {
+          type: "simple-line",
+          color: [26, 122, 60, 0.85],
+          width: drawingActive ? 2 : 2.5,
+          style: drawingActive ? "dash" : "solid"
+        }
+      }));
+    }
+
+    // Fill polygon when closed
+    if (!drawingActive && clickPoints.length >= 3) {
+      const ring = clickPoints.map(p => [p.longitude, p.latitude]);
+      ring.push(ring[0]);
+      boundaryLayer.add(new window._setupGraphic({
+        geometry: {
+          type: "polygon",
+          rings: [ring],
+          spatialReference: { wkid: 4326 }
+        },
+        symbol: {
+          type: "simple-fill",
+          color: [26, 122, 60, 0.08],
+          outline: { color: [26, 122, 60, 0], width: 0 }
+        }
+      }));
+    }
+  }
+
+  function initSetupMap() {
+    require([
+      "esri/config",
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/Graphic",
+      "esri/layers/GraphicsLayer",
+      "esri/geometry/Circle"
+    ], async function(esriConfig, Map, MapView, Graphic, GraphicsLayer, Circle) {
+
+      window._setupGraphic = Graphic;
+
+      esriConfig.apiKey = ARCGIS_KEY;
+
+      const setupMap = new Map({ basemap: "satellite" });
+      setupView = new MapView({
+        container: "setup-map-view",
+        map: setupMap,
+        center: DEFAULT_CENTER,
+        zoom: 16,
+        ui: { components: ["zoom"] }
+      });
+
+      boundaryLayer  = new GraphicsLayer();
+      radiusLayer    = new GraphicsLayer();
+      nodeSetupLayer = new GraphicsLayer();
+      setupMap.addMany([radiusLayer, boundaryLayer, nodeSetupLayer]);
+
+      // Load node locations and draw trap markers + radius circles
+      const locationMap = await fetchNodeLocations();
+      const nodeCoords = Object.entries(locationMap);
+
+      nodeCoords.forEach(([nid, coords]) => {
+        // 1-mile pheromone radius circle
+        radiusLayer.add(new Graphic({
+          geometry: new Circle({
+            center: { type: "point", longitude: coords[0], latitude: coords[1] },
+            radius: PHEROMONE_RADIUS_METERS,
+            radiusUnit: "meters",
+            spatialReference: { wkid: 4326 }
+          }),
+          symbol: {
+            type: "simple-fill",
+            color: [26, 122, 60, 0.06],
+            outline: { color: [26, 122, 60, 0.45], width: 1.5, style: "dash" }
+          }
+        }));
+
+        // Distance label (radius annotation)
+        radiusLayer.add(new Graphic({
+          geometry: { type: "point", longitude: coords[0], latitude: coords[1] + 0.0135 },
+          symbol: {
+            type: "text",
+            color: [26, 122, 60, 0.7],
+            text: "1 mi radius",
+            font: { size: 10, family: "IBM Plex Mono, monospace" },
+            horizontalAlignment: "center"
+          }
+        }));
+
+        // Trap node marker
+        const numMatch = nid.match(/(\d+)$/);
+        const nodeNum  = numMatch ? String(parseInt(numMatch[1], 10)) : "?";
+
+        nodeSetupLayer.add(new Graphic({
+          geometry: { type: "point", longitude: coords[0], latitude: coords[1] },
+          symbol: {
+            type: "simple-marker",
+            color: [220, 38, 38, 0.95],
+            outline: { color: [255, 255, 255], width: 2 },
+            size: "22px"
+          },
+          popupTemplate: { title: nid, content: `Lat: ${coords[1].toFixed(5)}<br>Lng: ${coords[0].toFixed(5)}` }
+        }));
+
+        nodeSetupLayer.add(new Graphic({
+          geometry: { type: "point", longitude: coords[0], latitude: coords[1] },
+          symbol: {
+            type: "text",
+            color: [255, 255, 255],
+            text: nodeNum,
+            font: { size: 9, weight: "bold", family: "sans-serif" },
+            horizontalAlignment: "center",
+            verticalAlignment: "middle"
+          }
+        }));
+      });
+
+      // Center map on nodes
+      if (nodeCoords.length === 1) {
+        setupView.center = nodeCoords[0][1];
+        setupView.zoom = 16;
+      } else if (nodeCoords.length > 1) {
+        const lngs = nodeCoords.map(([,c]) => c[0]);
+        const lats = nodeCoords.map(([,c]) => c[1]);
+        setupView.goTo({
+          target: {
+            type: "extent",
+            xmin: Math.min(...lngs) - 0.02, ymin: Math.min(...lats) - 0.02,
+            xmax: Math.max(...lngs) + 0.02, ymax: Math.max(...lats) + 0.02,
+            spatialReference: { wkid: 4326 }
+          }
+        }, { animate: false }).catch(() => {});
+      }
+
+      // Load existing boundary from DB
+      const existing = await fetchBoundary();
+      if (existing && Array.isArray(existing.polygon_points) && existing.polygon_points.length >= 3) {
+        clickPoints = existing.polygon_points;
+        savedBoundaryPoints = [...clickPoints];
+        drawingActive = false;
+        redrawBoundary();
+        document.getElementById('btn-save-boundary').disabled = false;
+        setSetupStatus(`Loaded saved boundary · ${clickPoints.length} points.`, "success");
+      }
+
+      // ── MAP CLICK HANDLER ──
+      setupView.on("click", function(event) {
+        if (!drawingActive) return;
+        event.stopPropagation();
+        clickPoints.push({ longitude: event.mapPoint.longitude, latitude: event.mapPoint.latitude });
+        redrawBoundary();
+        setSetupStatus(`${clickPoints.length} point${clickPoints.length > 1 ? 's' : ''} placed. Double-click to finish.`, "");
+      });
+
+      // ── DOUBLE-CLICK TO FINISH ──
+      setupView.on("double-click", function(event) {
+        if (!drawingActive) return;
+        event.stopPropagation();
+        // Remove the extra point that single-click fired just before
+        if (clickPoints.length > 0) clickPoints.pop();
+        stopDrawing();
+      });
+    });
+  }
+
 </script>
 </body>
 </html>
