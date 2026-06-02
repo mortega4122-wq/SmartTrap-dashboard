@@ -9,6 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
 
   <style>
     :root {
@@ -157,6 +159,43 @@
 
     .chart-title span { color: var(--text); }
     .chart-wrap { height: 200px; position: relative; }
+
+    .zoom-hint {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .reset-zoom-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: none;
+    }
+
+    .reset-zoom-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .reset-zoom-btn.visible { display: inline-block; }
+
+    .unsynced-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      background: #fef9f0;
+      border: 1px solid #f5d9a8;
+      color: var(--warn);
+      margin-left: 8px;
+    }
 
     .loading {
       text-align: center;
@@ -364,6 +403,10 @@
       <div class="chart-card">
         <div class="chart-header">
           <div class="chart-title">Temperature over time <span>/ °F</span></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="zoom-hint">Scroll to zoom · Drag to pan</span>
+            <button class="reset-zoom-btn" id="reset-temp" onclick="resetZoom('chart-temp','reset-temp')">Reset</button>
+          </div>
         </div>
         <div class="chart-wrap"><canvas id="chart-temp"></canvas></div>
       </div>
@@ -371,6 +414,10 @@
       <div class="chart-card">
         <div class="chart-header">
           <div class="chart-title">Humidity over time <span>/ %</span></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="zoom-hint">Scroll to zoom · Drag to pan</span>
+            <button class="reset-zoom-btn" id="reset-humidity" onclick="resetZoom('chart-humidity','reset-humidity')">Reset</button>
+          </div>
         </div>
         <div class="chart-wrap"><canvas id="chart-humidity"></canvas></div>
       </div>
@@ -378,6 +425,10 @@
       <div class="chart-card">
         <div class="chart-header">
           <div class="chart-title">Insect detections over time <span>/ count</span></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="zoom-hint">Scroll to zoom · Drag to pan</span>
+            <button class="reset-zoom-btn" id="reset-insects" onclick="resetZoom('chart-insects','reset-insects')">Reset</button>
+          </div>
         </div>
         <div class="chart-wrap"><canvas id="chart-insects"></canvas></div>
       </div>
@@ -385,6 +436,10 @@
       <div class="chart-card">
         <div class="chart-header">
           <div class="chart-title">Battery voltage over time <span>/ V</span></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="zoom-hint">Scroll to zoom · Drag to pan</span>
+            <button class="reset-zoom-btn" id="reset-battery" onclick="resetZoom('chart-battery','reset-battery')">Reset</button>
+          </div>
         </div>
         <div class="chart-wrap"><canvas id="chart-battery"></canvas></div>
       </div>
@@ -405,6 +460,22 @@
 
   const toF = c => (c * 9/5) + 32;
 
+  // ── TIMESTAMP RESOLUTION ────────────────────────────────
+  // Resolves the best available timestamp for a row.
+  // Priority: event_timestamp (if valid) → timestamp_received (fallback).
+  // Rows with UNSYNCED_ or invalid event_timestamps are no longer
+  // omitted — they use timestamp_received so the data still appears.
+  function resolveTimestamp(row) {
+    const et = row.event_timestamp;
+    if (et && !et.startsWith("UNSYNCED_")) {
+      const d = new Date(et);
+      if (!isNaN(d.getTime())) return d;
+    }
+    // Fallback to when the Pi received it — slightly less precise
+    // but far better than omitting the data entirely.
+    return new Date(row.timestamp_received);
+  }
+
   function rollingAverage(data, windowSize = 5) {
     if (data.length < windowSize) return data;
     const half = Math.floor(windowSize / 2);
@@ -418,7 +489,6 @@
   }
 
   async function fetchNodeData() {
-    // Fetch last 5 days of data — no arbitrary row cap
     const since = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/trap_data?node_id=eq.${encodeURIComponent(nodeId)}&timestamp_received=gte.${since}&order=timestamp_received.asc`,
@@ -426,7 +496,6 @@
         headers: {
           "apikey": SUPABASE_KEY,
           "Authorization": `Bearer ${SUPABASE_KEY}`,
-          // Tell Supabase to return ALL matching rows, not the default 1000 cap
           "Range-Unit": "items",
           "Range": "0-9999"
         }
@@ -467,7 +536,6 @@
     const btn = document.getElementById("save-location-btn");
     const status = document.getElementById("save-status");
 
-    // Basic validation
     if (isNaN(lat) || isNaN(lng)) {
       status.textContent = "Please enter valid numbers for both latitude and longitude.";
       status.className = "save-status error";
@@ -490,12 +558,9 @@
     status.className = "save-status";
 
     try {
-      // Check if a row already exists for this node
       const existing = await fetchCurrentLocation();
-
       let res;
       if (existing) {
-        // Update existing row
         res = await fetch(
           `${SUPABASE_URL}/rest/v1/node_locations?node_id=eq.${encodeURIComponent(nodeId)}`,
           {
@@ -510,7 +575,6 @@
           }
         );
       } else {
-        // Insert new row
         res = await fetch(
           `${SUPABASE_URL}/rest/v1/node_locations`,
           {
@@ -529,7 +593,6 @@
       if (res.ok) {
         status.textContent = "✓ Location saved successfully.";
         status.className = "save-status success";
-        // Update the badge
         const badge = document.getElementById("location-current");
         badge.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         badge.classList.remove("no-location");
@@ -549,27 +612,10 @@
 
   // ── CHARTS ──────────────────────────────────────────────
 
-  const chartDefaults = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: {
-        type: "time",
-        time: { tooltipFormat: "MMM d, h:mm a" },
-        ticks: { color: "#6b7a6c", font: { family: "'IBM Plex Mono'" }, maxTicksLimit: 8 },
-        grid: { color: "#e2e5e2" }
-      },
-      y: {
-        ticks: { color: "#6b7a6c", font: { family: "'IBM Plex Mono'" } },
-        grid: { color: "#e2e5e2" }
-      }
-    }
-  };
+  const chartInstances = {};
 
-  function makeChart(id, label, color, data) {
-    return new Chart(document.getElementById(id), {
+  function makeChart(id, label, color, data, resetBtnId) {
+    const chart = new Chart(document.getElementById(id), {
       type: "line",
       data: {
         datasets: [{
@@ -583,8 +629,64 @@
           backgroundColor: color.replace(")", ", 0.08)").replace("rgb", "rgba")
         }]
       },
-      options: chartDefaults
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: { display: false },
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: "x",
+              onPanComplete: () => showResetBtn(resetBtnId)
+            },
+            zoom: {
+              wheel: { enabled: true },
+              pinch: { enabled: true },
+              mode: "x",
+              onZoomComplete: () => showResetBtn(resetBtnId)
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: "time",
+            time: { tooltipFormat: "MMM d, h:mm a" },
+            ticks: {
+              color: "#6b7a6c",
+              font: { family: "'IBM Plex Mono'" },
+              maxTicksLimit: 8
+            },
+            grid: { color: "#e2e5e2" }
+          },
+          y: {
+            // Auto-scale tightly to the visible data range with a small pad
+            grace: "5%",
+            ticks: {
+              color: "#6b7a6c",
+              font: { family: "'IBM Plex Mono'" }
+            },
+            grid: { color: "#e2e5e2" }
+          }
+        }
+      }
     });
+
+    chartInstances[id] = chart;
+    return chart;
+  }
+
+  function showResetBtn(btnId) {
+    const btn = document.getElementById(btnId);
+    if (btn) btn.classList.add("visible");
+  }
+
+  function resetZoom(chartId, btnId) {
+    const chart = chartInstances[chartId];
+    if (chart) chart.resetZoom();
+    const btn = document.getElementById(btnId);
+    if (btn) btn.classList.remove("visible");
   }
 
   // ── INIT ────────────────────────────────────────────────
@@ -605,34 +707,43 @@
     document.getElementById("page-subtitle").textContent =
       `First seen: ${firstSeen} · Last seen: ${lastSeen} · ${rows.length} records`;
 
+    // Count how many rows still have unreconciled UNSYNCED_ timestamps
+    // (old data from before the firmware fix) so we can warn the user.
+    const unsyncedCount = rows.filter(r =>
+      r.event_timestamp && r.event_timestamp.startsWith("UNSYNCED_")
+    ).length;
+    if (unsyncedCount > 0) {
+      const subtitle = document.getElementById("page-subtitle");
+      subtitle.innerHTML += ` <span class="unsynced-badge">⚠ ${unsyncedCount} pre-sync records plotted using receive time</span>`;
+    }
+
     const rawTempData = rows
       .filter(r => r.event_type === "temp" && r.event_value !== null)
-      .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
-      .map(r => ({ x: new Date(r.event_timestamp), y: toF(parseFloat(r.event_value)) }));
+      .sort((a, b) => resolveTimestamp(a) - resolveTimestamp(b))
+      .map(r => ({ x: resolveTimestamp(r), y: toF(parseFloat(r.event_value)) }));
     const tempData = rollingAverage(rawTempData, 5);
 
     const rawHumData = rows
       .filter(r => r.event_type === "humidity" && r.event_value !== null)
-      .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
-      .map(r => ({ x: new Date(r.event_timestamp), y: parseFloat(r.event_value) }));
+      .sort((a, b) => resolveTimestamp(a) - resolveTimestamp(b))
+      .map(r => ({ x: resolveTimestamp(r), y: parseFloat(r.event_value) }));
     const humData = rollingAverage(rawHumData, 5);
 
-    const addedRows   = rows.filter(r => r.event_type === "beetle_count_added");
-    const removedRows = rows.filter(r => r.event_type === "beetle_count_removed");
-    let runningTotal  = 0;
     const allInsectRows = rows
       .filter(r => r.event_type === "beetle_count_added" || r.event_type === "beetle_count_removed")
-      .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp));
+      .sort((a, b) => resolveTimestamp(a) - resolveTimestamp(b));
+    let runningTotal = 0;
     const insectData = allInsectRows.map(r => {
       runningTotal += r.event_type === "beetle_count_added" ? 1 : -1;
-      return { x: new Date(r.event_timestamp), y: runningTotal };
+      return { x: resolveTimestamp(r), y: runningTotal };
     });
-    const totalInsects = addedRows.length - removedRows.length;
+    const totalInsects = rows.filter(r => r.event_type === "beetle_count_added").length
+                       - rows.filter(r => r.event_type === "beetle_count_removed").length;
 
     const battData = rows
       .filter(r => r.battery_voltage !== null && parseFloat(r.battery_voltage) > 0)
-      .sort((a, b) => new Date(a.event_timestamp) - new Date(b.event_timestamp))
-      .map(r => ({ x: new Date(r.event_timestamp), y: parseFloat(r.battery_voltage) }));
+      .sort((a, b) => resolveTimestamp(a) - resolveTimestamp(b))
+      .map(r => ({ x: resolveTimestamp(r), y: parseFloat(r.battery_voltage) }));
 
     if (tempData.length)
       document.getElementById("stat-temp").innerHTML =
@@ -648,10 +759,10 @@
       document.getElementById("stat-battery").innerHTML =
         `—<span class="stat-unit">(not wired)</span>`;
 
-    makeChart("chart-temp",     "Temperature", "rgb(234, 88, 12)",   tempData);
-    makeChart("chart-humidity", "Humidity",    "rgb(14, 116, 144)",  humData);
-    makeChart("chart-insects",  "Insects",     "rgb(22, 163, 74)",   insectData);
-    makeChart("chart-battery",  "Battery",     "rgb(124, 58, 237)",  battData);
+    makeChart("chart-temp",     "Temperature", "rgb(234, 88, 12)",  tempData,   "reset-temp");
+    makeChart("chart-humidity", "Humidity",    "rgb(14, 116, 144)", humData,    "reset-humidity");
+    makeChart("chart-insects",  "Insects",     "rgb(22, 163, 74)",  insectData, "reset-insects");
+    makeChart("chart-battery",  "Battery",     "rgb(124, 58, 237)", battData,   "reset-battery");
   });
 </script>
 </body>
