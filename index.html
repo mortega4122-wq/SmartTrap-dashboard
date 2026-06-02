@@ -259,8 +259,9 @@
       <div class="rover-metrics">
         <div class="rover-metric"><div class="rover-metric-label">Last Position</div><div class="rover-metric-value" id="rover-last-pos">—</div></div>
         <div class="rover-metric"><div class="rover-metric-label">Last Seen</div><div class="rover-metric-value" id="rover-last-seen">—</div></div>
-        <div class="rover-metric"><div class="rover-metric-label">Total Stops</div><div class="rover-metric-value" id="rover-stop-count">—</div></div>
-        <div class="rover-metric"><div class="rover-metric-label">WiFi Radius</div><div class="rover-metric-value">~50m</div></div>
+        <div class="rover-metric"><div class="rover-metric-label">Total Pings</div><div class="rover-metric-value" id="rover-stop-count">—</div></div>
+        <div class="rover-metric"><div class="rover-metric-label">WiFi Radius</div><div class="rover-metric-value">~30m</div></div>
+        <div class="rover-metric" style="grid-column: span 2"><div class="rover-metric-label">First Deployed</div><div class="rover-metric-value" id="rover-first-seen" style="font-size:10px">—</div></div>
       </div>
     </div>
     <div class="nodes-list" id="nodes-list">
@@ -323,7 +324,7 @@
   const SUPABASE_KEY           = "sb_publishable_e-UEF6y_4kk-QSFb7CfzHQ_lgLVSG6l";
   const ARCGIS_KEY             = "AAPTaVBgWcwmkBkx6iqYw7uXtbQ..Osa6s3wYR1qeRc-FHJv-7xo0qGUcE_UXWBIy5Ugb6hg_DkQRKOfWMrceCvMXt_LcWmXGYoruj5TTc-rTFi58dvkeNDUw28EyxSIBq89chY_-NSW5X56boL-xg2Ikb_NuX21QzxzD4YW8w8bMDICciDZZhbfEfFdyNbrImabIrcBz3oqucBTAdiVVBM9eS9m1APnBewxY5p_D2w-KBJ0LWZyd5qqKXj6L_mqQf-5ebYhe-DILAguQGpyAAT1_EKuxh5JG";
   const DEFAULT_CENTER         = [37.35368, -120.93426];
-  const WIFI_RADIUS_METERS     = 50;
+  const WIFI_RADIUS_METERS     = 30;
   const LIVE_THRESHOLD_MINUTES = 3;
 
   async function sbGet(path) {
@@ -502,25 +503,50 @@
 
     if (roverHistory.length === 0) {
       document.getElementById("rover-header-status").textContent = "Rover: no data yet";
-      ["rover-last-pos","rover-last-seen","rover-stop-count"].forEach(id => document.getElementById(id).textContent = id === "rover-stop-count" ? "0" : "—");
+      ["rover-last-pos","rover-last-seen","rover-stop-count","rover-first-seen"].forEach(id => document.getElementById(id).textContent = id === "rover-stop-count" ? "0" : "—");
       return;
     }
 
     const lr    = roverHistory[roverHistory.length - 1];
+    const fr    = roverHistory[0];
     const llat  = parseFloat(lr.latitude), llng = parseFloat(lr.longitude);
     const ltime = new Date(lr.timestamp).toLocaleString();
+    const ftime = new Date(fr.timestamp).toLocaleString();
     document.getElementById("rover-header-status").textContent = `Rover: ${llat.toFixed(4)}, ${llng.toFixed(4)}`;
     document.getElementById("rover-last-pos").textContent      = `${llat.toFixed(4)}, ${llng.toFixed(4)}`;
     document.getElementById("rover-last-seen").textContent     = ltime;
     document.getElementById("rover-stop-count").textContent    = roverHistory.length;
+    document.getElementById("rover-first-seen").textContent    = ftime;
 
-    if (roverHistory.length > 1) {
-      L.polyline(roverHistory.map(r => [parseFloat(r.latitude), parseFloat(r.longitude)]),
-        { color: "#1d4ed8", weight: 2, dashArray: "6,4", opacity: 0.7 }).addTo(map);
+    // Limit map display to the 10 most recent pings only
+    const recentHistory = roverHistory.slice(-10);
+
+    if (recentHistory.length > 1) {
+      const pathCoords = recentHistory.map(r => [parseFloat(r.latitude), parseFloat(r.longitude)]);
+
+      // Draw the dashed polyline
+      L.polyline(pathCoords, { color: "#1d4ed8", weight: 2, dashArray: "6,4", opacity: 0.7 }).addTo(map);
+
+      // Add a directional arrowhead at the midpoint of each segment
+      for (let i = 0; i < pathCoords.length - 1; i++) {
+        const from = pathCoords[i];
+        const to   = pathCoords[i + 1];
+        const midLat = (from[0] + to[0]) / 2;
+        const midLng = (from[1] + to[1]) / 2;
+        const angleDeg = Math.atan2(to[1] - from[1], to[0] - from[0]) * (180 / Math.PI);
+
+        const arrowIcon = L.divIcon({
+          className: "",
+          html: `<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:11px solid #1d4ed8;opacity:0.85;transform:rotate(${angleDeg}deg);transform-origin:center center;"></div>`,
+          iconSize: [10, 11], iconAnchor: [5, 5.5]
+        });
+
+        L.marker([midLat, midLng], { icon: arrowIcon, interactive: false }).addTo(map);
+      }
     }
 
-    roverHistory.forEach((stop, idx) => {
-      const isLatest = idx === roverHistory.length - 1;
+    recentHistory.forEach((stop, idx) => {
+      const isLatest = idx === recentHistory.length - 1;
       const lat = parseFloat(stop.latitude), lng = parseFloat(stop.longitude);
       L.circle([lat, lng], { radius: WIFI_RADIUS_METERS, color: "#1d4ed8", weight: 1, dashArray: isLatest ? null : "4,3", fillColor: "#1d4ed8", fillOpacity: isLatest ? 0.12 : 0.04, opacity: isLatest ? 0.5 : 0.2 }).addTo(map);
       L.marker([lat, lng], { icon: roverIcon(isLatest) }).addTo(map)
