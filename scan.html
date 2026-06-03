@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>Register Node — SmartTrap</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:      #f5f6f4;
+      --surface: #ffffff;
+      --border:  #e2e5e2;
+      --accent:  #1a7a3c;
+      --accent2: #2da653;
+      --warn:    #b45309;
+      --danger:  #dc2626;
+      --text:    #1a1f1a;
+      --muted:   #6b7a6c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .back-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .back-btn:active { color: var(--accent); border-color: var(--accent); }
+
+    /* ── CONTENT ── */
+    .content {
+      flex: 1;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── PAGE TITLE ── */
+    .page-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+    .page-heading {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* ── GPS BLOCK ── */
+    .gps-state {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .gps-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .gps-icon.pending  { background: #fef9f0; border: 1px solid #f5d9a8; }
+    .gps-icon.success  { background: #f0faf4; border: 1px solid #bbf7d0; }
+    .gps-icon.error    { background: #fff1f1; border: 1px solid #fecaca; }
+    .gps-icon.loading  { background: #eff6ff; border: 1px solid #bfdbfe; animation: pulseGps 1.6s infinite; }
+
+    @keyframes pulseGps { 0%,100%{opacity:1} 50%{opacity:0.45} }
+
+    .gps-text-main {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .gps-text-sub {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .gps-coords {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      margin-top: 4px;
+    }
+
+    .gps-btn {
+      margin-top: 14px;
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .gps-btn:active { border-color: var(--accent); color: var(--accent); }
+
+    /* ── NODE ID INPUT ── */
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .node-input {
+      flex: 1;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      min-width: 0;
+    }
+    .node-input:focus { border-color: var(--accent); background: #fff; }
+    .node-input.error-input { border-color: var(--danger); }
+
+    .suggest-btn {
+      padding: 0 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .suggest-btn:active { border-color: var(--accent); color: var(--accent); }
+
+    .input-hint {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .input-hint.err { color: var(--danger); }
+
+    /* ── ACCURACY METER ── */
+    .accuracy-bar-wrap {
+      margin-top: 10px;
+    }
+    .accuracy-bar-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .accuracy-bar {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .accuracy-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.4s, background 0.4s;
+    }
+
+    /* ── SUBMIT BUTTON ── */
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .submit-btn:disabled {
+      background: var(--border);
+      color: var(--muted);
+      cursor: not-allowed;
+    }
+    .submit-btn:not(:disabled):active { background: var(--accent2); }
+
+    /* ── STATUS STATES ── */
+    #status-block {
+      display: none;
+      border-radius: 10px;
+      padding: 18px 20px;
+      text-align: center;
+    }
+    #status-block.success {
+      display: block;
+      background: #f0faf4;
+      border: 1px solid #bbf7d0;
+    }
+    #status-block.error {
+      display: block;
+      background: #fff1f1;
+      border: 1px solid #fecaca;
+    }
+    #status-block.saving {
+      display: block;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+    }
+
+    .status-emoji { font-size: 32px; margin-bottom: 10px; }
+    .status-title {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .status-body {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .status-body strong { color: var(--accent); }
+
+    .action-links {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .action-link {
+      flex: 1;
+      padding: 11px;
+      border-radius: 8px;
+      text-align: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .action-link.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .action-link.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .action-link:active { opacity: 0.75; }
+
+    /* ── INFO BOX ── */
+    .info-box {
+      background: #fafbfa;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .info-box strong { color: var(--text); font-weight: 500; }
+
+    /* pulse dot */
+    .pulse-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulseGps 1.6s infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SmartTrap</div>
+  <a class="back-btn" href="index.html">← Dashboard</a>
+</header>
+
+<div class="content">
+
+  <div>
+    <div class="page-title">Field Deployment</div>
+    <div class="page-heading">Register New Trap Node</div>
+  </div>
+
+  <!-- GPS card -->
+  <div class="card" id="gps-card">
+    <div class="card-label">Step 1 — GPS Location</div>
+    <div class="gps-state" id="gps-state">
+      <div class="gps-icon pending" id="gps-icon">📍</div>
+      <div>
+        <div class="gps-text-main" id="gps-main">Tap to get your location</div>
+        <div class="gps-text-sub" id="gps-sub">Stand at the trap placement spot</div>
+      </div>
+    </div>
+    <div class="accuracy-bar-wrap" id="acc-wrap" style="display:none">
+      <div class="accuracy-bar-label">
+        <span>GPS Accuracy</span>
+        <span id="acc-label">—</span>
+      </div>
+      <div class="accuracy-bar">
+        <div class="accuracy-fill" id="acc-fill" style="width:0%;background:#4ade80"></div>
+      </div>
+    </div>
+    <button class="gps-btn" id="gps-btn" onclick="getLocation()">📍 Get My Location</button>
+  </div>
+
+  <!-- Node ID card -->
+  <div class="card" id="nodeid-card">
+    <div class="card-label">Step 2 — Node ID</div>
+    <div class="input-row">
+      <input
+        class="node-input"
+        id="node-id-input"
+        type="text"
+        placeholder="e.g. trap_node_04"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        oninput="onNodeIdInput()"
+      />
+      <button class="suggest-btn" onclick="suggestNextId()">Auto</button>
+    </div>
+    <div class="input-hint" id="id-hint">Tap Auto to suggest the next available ID</div>
+  </div>
+
+  <!-- Save button -->
+  <button class="submit-btn" id="submit-btn" onclick="registerNode()" disabled>
+    Save Node to Dashboard
+  </button>
+
+  <!-- Status block (hidden until action) -->
+  <div id="status-block">
+    <div class="status-emoji" id="status-emoji"></div>
+    <div class="status-title" id="status-title"></div>
+    <div class="status-body" id="status-body"></div>
+    <div class="action-links" id="action-links" style="display:none"></div>
+  </div>
+
+  <!-- Info box -->
+  <div class="info-box">
+    <strong>How it works</strong><br>
+    1. Open this page from the QR code on the trap hardware<br>
+    2. Stand at the exact placement location<br>
+    3. Tap <em>Get My Location</em> to capture GPS coords<br>
+    4. Confirm or edit the Node ID, then save<br>
+    The node will appear on the dashboard map immediately.
+  </div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = "https://nqhmvymrikjnkvtxtcst.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_e-UEF6y_4kk-QSFb7CfzHQ_lgLVSG6l";
+
+  let capturedLat = null;
+  let capturedLng = null;
+  let capturedAcc = null;
+
+  // ── Helper: read from Supabase ──────────────────────
+  async function sbGet(path) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    return res.json();
+  }
+
+  // ── Helper: write to Supabase ───────────────────────
+  async function sbPost(path, body) {
+    return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify(body)
+    });
+  }
+
+  // ── GPS ─────────────────────────────────────────────
+  function getLocation() {
+    if (!navigator.geolocation) {
+      showGpsError("Geolocation is not supported on this device.");
+      return;
+    }
+
+    setGpsState("loading", "🔄", "Locating…", "Waiting for GPS signal…");
+    document.getElementById("gps-btn").disabled = true;
+    document.getElementById("acc-wrap").style.display = "none";
+
+    navigator.geolocation.getCurrentPosition(
+      onGpsSuccess,
+      onGpsError,
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+  }
+
+  function onGpsSuccess(pos) {
+    capturedLat = pos.coords.latitude;
+    capturedLng = pos.coords.longitude;
+    capturedAcc = pos.coords.accuracy;
+
+    const accM   = capturedAcc.toFixed(1);
+    const quality = capturedAcc <= 5 ? "Excellent" : capturedAcc <= 15 ? "Good" : capturedAcc <= 40 ? "Fair" : "Poor";
+    const accColor = capturedAcc <= 5 ? "#4ade80" : capturedAcc <= 15 ? "#86efac" : capturedAcc <= 40 ? "#fbbf24" : "#f87171";
+    // bar: 100% at ±3 m, 0% at ±100 m
+    const barPct  = Math.max(0, Math.min(100, 100 - ((capturedAcc - 3) / 97) * 100)).toFixed(0);
+
+    setGpsState(
+      "success",
+      "✅",
+      `${capturedLat.toFixed(6)}, ${capturedLng.toFixed(6)}`,
+      `±${accM} m accuracy — ${quality}`
+    );
+
+    document.getElementById("acc-wrap").style.display = "block";
+    document.getElementById("acc-label").textContent = `±${accM} m (${quality})`;
+    document.getElementById("acc-fill").style.width = barPct + "%";
+    document.getElementById("acc-fill").style.background = accColor;
+
+    document.getElementById("gps-btn").textContent = "🔄 Re-capture Location";
+    document.getElementById("gps-btn").disabled = false;
+
+    checkCanSubmit();
+  }
+
+  function onGpsError(err) {
+    const msgs = {
+      1: "Location access denied. Please allow location in your browser settings.",
+      2: "GPS signal unavailable. Try stepping outside or away from obstructions.",
+      3: "Location request timed out. Try again in a moment."
+    };
+    showGpsError(msgs[err.code] || "Unknown GPS error.");
+    document.getElementById("gps-btn").textContent = "📍 Retry";
+    document.getElementById("gps-btn").disabled = false;
+  }
+
+  function showGpsError(msg) {
+    setGpsState("error", "⚠️", "Could not get location", msg);
+  }
+
+  function setGpsState(type, icon, main, sub) {
+    const iconEl  = document.getElementById("gps-icon");
+    const mainEl  = document.getElementById("gps-main");
+    const subEl   = document.getElementById("gps-sub");
+
+    iconEl.className = `gps-icon ${type}`;
+    iconEl.textContent = icon;
+    mainEl.textContent = main;
+    subEl.textContent  = sub;
+  }
+
+  // ── Node ID ─────────────────────────────────────────
+  async function suggestNextId() {
+    const btn = document.querySelector(".suggest-btn");
+    btn.textContent = "…";
+    btn.disabled = true;
+
+    try {
+      const rows = await sbGet("node_locations?select=node_id");
+      if (Array.isArray(rows) && rows.length > 0) {
+        // Find the highest numeric suffix
+        let maxNum = 0;
+        rows.forEach(r => {
+          const m = r.node_id.match(/(\d+)$/);
+          if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+        });
+        const nextNum = String(maxNum + 1).padStart(2, "0");
+        document.getElementById("node-id-input").value = `trap_node_${nextNum}`;
+      } else {
+        document.getElementById("node-id-input").value = "trap_node_01";
+      }
+    } catch (e) {
+      document.getElementById("node-id-input").value = "trap_node_01";
+    }
+
+    btn.textContent = "Auto";
+    btn.disabled = false;
+    onNodeIdInput();
+  }
+
+  function onNodeIdInput() {
+    const val  = document.getElementById("node-id-input").value.trim();
+    const hint = document.getElementById("id-hint");
+    const input = document.getElementById("node-id-input");
+
+    if (val.length === 0) {
+      hint.textContent = "Tap Auto to suggest the next available ID";
+      hint.className = "input-hint";
+      input.classList.remove("error-input");
+    } else if (!/^[a-zA-Z0-9_\-]+$/.test(val)) {
+      hint.textContent = "Only letters, numbers, underscores, and hyphens allowed";
+      hint.className = "input-hint err";
+      input.classList.add("error-input");
+    } else {
+      hint.textContent = `Node ID: "${val}"`;
+      hint.className = "input-hint";
+      input.classList.remove("error-input");
+    }
+
+    checkCanSubmit();
+  }
+
+  function checkCanSubmit() {
+    const val    = document.getElementById("node-id-input").value.trim();
+    const valid  = val.length > 0 && /^[a-zA-Z0-9_\-]+$/.test(val);
+    const hasGps = capturedLat !== null;
+    document.getElementById("submit-btn").disabled = !(valid && hasGps);
+  }
+
+  // ── Register node ────────────────────────────────────
+  async function registerNode() {
+    const nodeId = document.getElementById("node-id-input").value.trim();
+
+    if (!nodeId || capturedLat === null) return;
+
+    // Disable UI
+    document.getElementById("submit-btn").disabled = true;
+    document.getElementById("submit-btn").innerHTML = '<span class="spinner"></span>Saving…';
+    document.getElementById("gps-btn").disabled = true;
+    document.getElementById("node-id-input").disabled = true;
+    document.querySelector(".suggest-btn").disabled = true;
+
+    showStatus("saving", "⏳", "Saving node…", `Registering <strong>${nodeId}</strong> at<br>${capturedLat.toFixed(6)}, ${capturedLng.toFixed(6)}`);
+
+    try {
+      // Check if node ID already exists
+      const existing = await sbGet(`node_locations?node_id=eq.${encodeURIComponent(nodeId)}&select=node_id`);
+      if (Array.isArray(existing) && existing.length > 0) {
+        showStatus("error", "❌", "Node ID already exists",
+          `A node named <strong>${nodeId}</strong> is already registered.<br>Please choose a different ID.`);
+        resetForm();
+        return;
+      }
+
+      const res = await sbPost("node_locations", {
+        node_id:   nodeId,
+        latitude:  capturedLat,
+        longitude: capturedLng
+      });
+
+      if (res.ok || res.status === 201) {
+        showStatus("success", "✅", "Node registered!", 
+          `<strong>${nodeId}</strong> has been added to the dashboard.<br>
+           Location: ${capturedLat.toFixed(6)}, ${capturedLng.toFixed(6)}<br>
+           Accuracy: ±${capturedAcc ? capturedAcc.toFixed(1) : '?'} m`,
+          [
+            { href: "index.html", label: "← Dashboard", cls: "primary" },
+            { href: "scan.html", label: "+ Add Another", cls: "secondary" }
+          ]
+        );
+      } else {
+        const body = await res.text();
+        showStatus("error", "❌", "Save failed",
+          `Server returned ${res.status}.<br><small>${body.slice(0, 120)}</small>`);
+        resetForm();
+      }
+    } catch (e) {
+      showStatus("error", "❌", "Network error", e.message || "Could not reach the server. Check your connection.");
+      resetForm();
+    }
+  }
+
+  function resetForm() {
+    document.getElementById("submit-btn").disabled = false;
+    document.getElementById("submit-btn").textContent = "Save Node to Dashboard";
+    document.getElementById("gps-btn").disabled = false;
+    document.getElementById("node-id-input").disabled = false;
+    document.querySelector(".suggest-btn").disabled = false;
+    checkCanSubmit();
+  }
+
+  function showStatus(type, emoji, title, body, links) {
+    const block = document.getElementById("status-block");
+    block.className = type;
+    document.getElementById("status-emoji").textContent = emoji;
+    document.getElementById("status-title").textContent = title;
+    document.getElementById("status-body").innerHTML = body;
+
+    const linksEl = document.getElementById("action-links");
+    if (links && links.length) {
+      linksEl.style.display = "flex";
+      linksEl.innerHTML = links.map(l =>
+        `<a class="action-link ${l.cls}" href="${l.href}">${l.label}</a>`
+      ).join("");
+    } else {
+      linksEl.style.display = "none";
+    }
+
+    block.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // ── Auto-detect node_id from URL param ──────────────
+  // QR codes can encode: scan.html?node=trap_node_04
+  // This pre-fills the node ID field
+  (function prefillFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const nodeParam = params.get("node") || params.get("id");
+    if (nodeParam) {
+      document.getElementById("node-id-input").value = nodeParam;
+      onNodeIdInput();
+    }
+  })();
+</script>
+</body>
+</html>
