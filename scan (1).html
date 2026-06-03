@@ -283,6 +283,33 @@
       border-radius: 2px;
       transition: width 0.5s, background 0.5s;
     }
+    .name-form {
+      margin-top: 28px;
+      width: 100%;
+      max-width: 340px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .name-input {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 15px;
+      padding: 13px 16px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      text-align: center;
+    }
+    .name-input:focus { border-color: var(--accent); background: #fff; }
+    .name-hint {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -427,118 +454,150 @@
 
   // ── Main flow ───────────────────────────────────────
   async function run() {
-    // ── 1. GPS ──
+  // ── 1. GPS ──
+  setStep("gps");
+  setIcon("loading");
+  setText("Getting your location…", "Stand at the trap placement spot.<br>This only takes a moment.");
+
+  let lat, lng, acc;
+  try {
+    ({ lat, lng, acc } = await getGPS());
+  } catch (err) {
+    setIcon("error");
+    showEmoji("⚠️");
     setStep("gps");
-    setIcon("loading");
-    setText("Getting your location…", "Stand at the trap placement spot.<br>This only takes a moment.");
-
-    let lat, lng, acc;
-    try {
-      ({ lat, lng, acc } = await getGPS());
-    } catch (err) {
-      setIcon("error");
-      showEmoji("⚠️");
-      setStep("gps");
-      setText("Location unavailable", `<span class="err">${err.message}</span><br><br>Allow location access and try again.`);
-      showActions([{ href: "scan.html", label: "↺ Try Again", cls: "primary" }]);
-      return;
-    }
-
-    // Show accuracy bar
-    const accPct   = Math.max(0, Math.min(100, 100 - ((acc - 3) / 97) * 100));
-    const accColor = acc <= 5 ? "#4ade80" : acc <= 15 ? "#86efac" : acc <= 40 ? "#fbbf24" : "#f87171";
-    const accLabel = acc <= 5 ? "Excellent" : acc <= 15 ? "Good" : acc <= 40 ? "Fair" : "Poor";
-    document.getElementById("acc-bar-wrap").style.display = "block";
-    document.getElementById("acc-label-text").textContent = `±${acc.toFixed(1)} m — ${accLabel}`;
-    document.getElementById("acc-fill").style.width = accPct + "%";
-    document.getElementById("acc-fill").style.background = accColor;
-
-    // ── 2. Get next node ID ──
-    setStep("id");
-    setIcon("loading");
-    setText("Assigning node ID…", `GPS locked at<br><strong style="color:var(--accent)">${lat.toFixed(6)}, ${lng.toFixed(6)}</strong>`);
-
-    let nodeId;
-    try {
-      nodeId = await getNextNodeId();
-    } catch (err) {
-      setIcon("error");
-      showEmoji("⚠️");
-      setText("Could not reach database", `<span class="err">${err.message}</span>`);
-      showActions([{ href: "scan.html", label: "↺ Try Again", cls: "primary" }]);
-      return;
-    }
-
-    // ── 3. Save ──
-    setStep("save");
-    setIcon("loading");
-    setText(`Saving ${nodeId}…`, `Writing to database…`);
-
-    try {
-      const res = await sbPost("node_locations", {
-        node_id:   nodeId,
-        latitude:  lat,
-        longitude: lng
-      });
-
-      if (!res.ok && res.status !== 201) {
-        const body = await res.text().catch(() => "");
-        throw new Error(`HTTP ${res.status}: ${body.slice(0, 100)}`);
-      }
-    } catch (err) {
-      setIcon("error");
-      showEmoji("❌");
-      setStep("save");
-      setText("Save failed", `<span class="err">${err.message}</span>`);
-      showActions([{ href: "scan.html", label: "↺ Try Again", cls: "primary" }]);
-      return;
-    }
-
-    // ── 4. Success ──
-    setIcon("success");
-    showEmoji("✅");
-    // Mark all steps done
-    ["gps","id","save"].forEach(s => document.getElementById(`step-${s}`).className = "step done");
-    setText("Node registered!", `<strong>${nodeId}</strong> is now live on the dashboard.`);
-
-    // Populate detail card
-    document.getElementById("d-nodeid").textContent = nodeId;
-    document.getElementById("d-lat").textContent    = lat.toFixed(6);
-    document.getElementById("d-lng").textContent    = lng.toFixed(6);
-    document.getElementById("d-acc").textContent    = `±${acc.toFixed(1)} m (${accLabel})`;
-    document.getElementById("detail-card").classList.add("visible");
-
-    showActions([
-      { href: "index.html",  label: "← View Dashboard", cls: "primary"   },
-      { href: "scan.html",   label: "+ Register Another", cls: "secondary" }
-    ]);
+    setText("Location unavailable", `<span class="err">${err.message}</span><br><br>Allow location access and try again.`);
+    showActions([{ href: "scan.html", label: "↺ Try Again", cls: "primary" }]);
+    return;
   }
 
-  // ── GPS promise wrapper ─────────────────────────────
-  function getGPS() {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error("Geolocation not supported on this device."));
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        pos => resolve({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          acc: pos.coords.accuracy
-        }),
-        err => {
-          const msgs = {
-            1: "Location permission denied. Please allow access in your browser settings.",
-            2: "GPS signal unavailable. Step outside and try again.",
-            3: "Location request timed out. Try again."
-          };
-          reject(new Error(msgs[err.code] || "Unknown GPS error."));
-        },
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-      );
-    });
+  // Show accuracy bar
+  const accPct   = Math.max(0, Math.min(100, 100 - ((acc - 3) / 97) * 100));
+  const accColor = acc <= 5 ? "#4ade80" : acc <= 15 ? "#86efac" : acc <= 40 ? "#fbbf24" : "#f87171";
+  const accLabel = acc <= 5 ? "Excellent" : acc <= 15 ? "Good" : acc <= 40 ? "Fair" : "Poor";
+  document.getElementById("acc-bar-wrap").style.display = "block";
+  document.getElementById("acc-label-text").textContent = `±${acc.toFixed(1)} m — ${accLabel}`;
+  document.getElementById("acc-fill").style.width = accPct + "%";
+  document.getElementById("acc-fill").style.background = accColor;
+
+  // ── 2. Get suggested ID ──
+  setStep("id");
+  setIcon("loading");
+  setText("Assigning node ID…", `GPS locked at<br><strong style="color:var(--accent)">${lat.toFixed(6)}, ${lng.toFixed(6)}</strong>`);
+
+  let suggestedId;
+  try {
+    suggestedId = await getNextNodeId();
+  } catch (err) {
+    setIcon("error");
+    showEmoji("⚠️");
+    setText("Could not reach database", `<span class="err">${err.message}</span>`);
+    showActions([{ href: "scan.html", label: "↺ Try Again", cls: "primary" }]);
+    return;
   }
+
+  // ── 3. Name input step ──
+  setIcon("loading");
+  showEmoji("✏️");
+  document.getElementById("icon-wrap").className = "icon-wrap loading";
+  setText("Name this node", `GPS locked · ±${acc.toFixed(1)} m<br>Edit the name below or keep the suggestion.`);
+
+  // Build the name form
+  const nameForm = document.createElement("div");
+  nameForm.className = "name-form";
+  nameForm.id = "name-form";
+  nameForm.innerHTML = `
+    <input class="name-input" id="name-input" type="text"
+      value="${suggestedId}"
+      autocomplete="off" autocorrect="off" spellcheck="false"
+      placeholder="e.g. trap_node_04" />
+    <div class="name-hint" id="name-hint">Letters, numbers, underscores, and hyphens only</div>
+    <button class="action-btn primary" id="confirm-btn" onclick="confirmName(${lat}, ${lng}, ${acc}, '${accLabel}')">
+      Confirm &amp; Save →
+    </button>
+  `;
+  document.getElementById("stage").appendChild(nameForm);
+
+  // Live validation
+  document.getElementById("name-input").addEventListener("input", function() {
+    const val  = this.value.trim();
+    const hint = document.getElementById("name-hint");
+    const btn  = document.getElementById("confirm-btn");
+    if (!val) {
+      hint.textContent = "Name cannot be empty";
+      hint.style.color = "var(--danger)";
+      btn.disabled = true;
+    } else if (!/^[a-zA-Z0-9_\-]+$/.test(val)) {
+      hint.textContent = "Only letters, numbers, underscores, and hyphens";
+      hint.style.color = "var(--danger)";
+      btn.disabled = true;
+    } else {
+      hint.textContent = "Looks good!";
+      hint.style.color = "var(--accent)";
+      btn.disabled = false;
+    }
+  });
+
+  // Auto-focus the input
+  setTimeout(() => document.getElementById("name-input")?.focus(), 100);
+}
+
+async function confirmName(lat, lng, acc, accLabel) {
+  const nodeId = document.getElementById("name-input").value.trim();
+  if (!nodeId || !/^[a-zA-Z0-9_\-]+$/.test(nodeId)) return;
+
+  // Remove name form
+  document.getElementById("name-form")?.remove();
+  document.getElementById("actions").style.display = "none";
+
+  // ── 4. Save ──
+  setStep("save");
+  setIcon("loading");
+  document.getElementById("icon-wrap").querySelectorAll(".result-emoji").forEach(x => x.remove());
+  document.getElementById("spinner").style.display = "block";
+  setText(`Saving ${nodeId}…`, "Writing to database…");
+
+  try {
+    // Check for duplicate name
+    const existing = await sbGet(`node_locations?node_id=eq.${encodeURIComponent(nodeId)}&select=node_id`);
+    if (Array.isArray(existing) && existing.length > 0) {
+      setIcon("error");
+      showEmoji("⚠️");
+      setText("Name already taken", `A node named <strong>${nodeId}</strong> already exists.<br>Go back and choose a different name.`);
+      showActions([{ href: "scan.html", label: "↺ Try Again", cls: "primary" }]);
+      return;
+    }
+
+    const res = await sbPost("node_locations", { node_id: nodeId, latitude: lat, longitude: lng });
+    if (!res.ok && res.status !== 201) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`HTTP ${res.status}: ${body.slice(0, 100)}`);
+    }
+  } catch (err) {
+    setIcon("error");
+    showEmoji("❌");
+    setText("Save failed", `<span class="err">${err.message}</span>`);
+    showActions([{ href: "scan.html", label: "↺ Try Again", cls: "primary" }]);
+    return;
+  }
+
+  // ── 5. Success ──
+  setIcon("success");
+  showEmoji("✅");
+  ["gps","id","save"].forEach(s => document.getElementById(`step-${s}`).className = "step done");
+  setText("Node registered!", `<strong>${nodeId}</strong> is now live on the dashboard.`);
+
+  document.getElementById("d-nodeid").textContent = nodeId;
+  document.getElementById("d-lat").textContent    = lat.toFixed(6);
+  document.getElementById("d-lng").textContent    = lng.toFixed(6);
+  document.getElementById("d-acc").textContent    = `±${acc.toFixed(1)} m (${accLabel})`;
+  document.getElementById("detail-card").classList.add("visible");
+
+  showActions([
+    { href: "index.html", label: "← View Dashboard", cls: "primary"   },
+    { href: "scan.html",  label: "+ Register Another", cls: "secondary" }
+  ]);
+}
 
   // ── Auto-increment node ID ──────────────────────────
   async function getNextNodeId() {
