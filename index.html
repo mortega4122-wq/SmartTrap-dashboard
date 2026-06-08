@@ -310,7 +310,7 @@
       <div class="node-count"><span id="node-count">—</span> registered nodes</div>
     </div>
     <div class="farm-stats-card" id="farm-stats-card" style="display:none">
-      <div class="farm-stats-title">🌿 Farm Average</div>
+      <div class="farm-stats-title">🌿 Farm Overview</div>
       <div class="farm-stats-row">
         <div class="farm-stat">
           <div class="farm-stat-label">Avg Temp</div>
@@ -319,6 +319,14 @@
         <div class="farm-stat">
           <div class="farm-stat-label">Avg Humidity</div>
           <div class="farm-stat-value" id="farm-avg-hum">—<span class="farm-stat-unit">%</span></div>
+        </div>
+        <div class="farm-stat">
+          <div class="farm-stat-label">Temp Range</div>
+          <div class="farm-stat-value" id="farm-range-temp" style="font-size:13px">—</div>
+        </div>
+        <div class="farm-stat">
+          <div class="farm-stat-label">Hum Range</div>
+          <div class="farm-stat-value" id="farm-range-hum" style="font-size:13px">—</div>
         </div>
       </div>
     </div>
@@ -451,11 +459,17 @@
       card.style.display = "block";
       if (validTemps.length > 0) {
         const avg = (validTemps.reduce((a,b) => a+b, 0) / validTemps.length).toFixed(1);
-        document.getElementById("farm-avg-temp").innerHTML = `${avg}<span class="farm-stat-unit">°F</span>`;
+        const min = Math.min(...validTemps).toFixed(1);
+        const max = Math.max(...validTemps).toFixed(1);
+        document.getElementById("farm-avg-temp").innerHTML  = `${avg}<span class="farm-stat-unit">°F</span>`;
+        document.getElementById("farm-range-temp").innerHTML = `↓${min} <span class="farm-stat-unit">°F</span> · ↑${max} <span class="farm-stat-unit">°F</span>`;
       }
       if (validHums.length > 0) {
         const avg = (validHums.reduce((a,b) => a+b, 0) / validHums.length).toFixed(1);
-        document.getElementById("farm-avg-hum").innerHTML = `${avg}<span class="farm-stat-unit">%</span>`;
+        const min = Math.min(...validHums).toFixed(1);
+        const max = Math.max(...validHums).toFixed(1);
+        document.getElementById("farm-avg-hum").innerHTML  = `${avg}<span class="farm-stat-unit">%</span>`;
+        document.getElementById("farm-range-hum").innerHTML = `↓${min} <span class="farm-stat-unit">%</span> · ↑${max} <span class="farm-stat-unit">%</span>`;
       }
     }
     return nodeData;
