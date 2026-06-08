@@ -237,6 +237,51 @@
       margin-top: 3px;
       letter-spacing: 0.04em;
     }
+
+    .farm-stats-card {
+      margin: 10px 12px 0;
+      background: #f0faf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      flex-shrink: 0;
+    }
+    .farm-stats-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .farm-stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .farm-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .farm-stat-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+    .farm-stat-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+    .farm-stat-unit {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 2px;
+    }
   </style>
 </head>
 <body>
@@ -263,6 +308,19 @@
     <div class="sidebar-header">
       <div class="sidebar-title">Field Nodes</div>
       <div class="node-count"><span id="node-count">—</span> registered nodes</div>
+    </div>
+    <div class="farm-stats-card" id="farm-stats-card" style="display:none">
+      <div class="farm-stats-title">🌿 Farm Average</div>
+      <div class="farm-stats-row">
+        <div class="farm-stat">
+          <div class="farm-stat-label">Avg Temp</div>
+          <div class="farm-stat-value" id="farm-avg-temp">—<span class="farm-stat-unit">°F</span></div>
+        </div>
+        <div class="farm-stat">
+          <div class="farm-stat-label">Avg Humidity</div>
+          <div class="farm-stat-value" id="farm-avg-hum">—<span class="farm-stat-unit">%</span></div>
+        </div>
+      </div>
     </div>
     <div class="rover-card">
       <div class="rover-card-header">
@@ -386,6 +444,20 @@
       nodeData.push(await buildNodeCard(nodeId, coords));
     }
     if (anyMissing) document.getElementById("no-location-banner").style.display = "block";
+    const validTemps = nodeData.map(n => parseFloat(n.tempVal)).filter(v => !isNaN(v));
+    const validHums  = nodeData.map(n => parseFloat(n.humVal)).filter(v => !isNaN(v));
+    if (validTemps.length > 0 || validHums.length > 0) {
+      const card = document.getElementById("farm-stats-card");
+      card.style.display = "block";
+      if (validTemps.length > 0) {
+        const avg = (validTemps.reduce((a,b) => a+b, 0) / validTemps.length).toFixed(1);
+        document.getElementById("farm-avg-temp").innerHTML = `${avg}<span class="farm-stat-unit">°F</span>`;
+      }
+      if (validHums.length > 0) {
+        const avg = (validHums.reduce((a,b) => a+b, 0) / validHums.length).toFixed(1);
+        document.getElementById("farm-avg-hum").innerHTML = `${avg}<span class="farm-stat-unit">%</span>`;
+      }
+    }
     return nodeData;
   }
 
