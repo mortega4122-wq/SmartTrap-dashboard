@@ -151,7 +151,7 @@
 
     .chart-title {
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
+      font-size: 14px;
       text-transform: uppercase;
       letter-spacing: 0.1em;
       color: var(--muted);
@@ -219,9 +219,10 @@
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 20px 24px;
+      padding: 12px 16px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.06);
       margin-bottom: 20px;
+      max-width: 600px;
     }
 
     .location-card-header {
@@ -395,6 +396,25 @@
         <div class="location-card-title">📍 Trap GPS Location</div>
         <div class="location-current" id="location-current">Loading...</div>
       </div>
+      <div class="location-fields">
+        <div class="field-group">
+          <div class="field-label">Latitude</div>
+          <input class="coord-input" type="number" id="input-lat" step="0.00001" placeholder="e.g. 37.35368" />
+        </div>
+        <div class="field-group">
+          <div class="field-label">Longitude</div>
+          <input class="coord-input" type="number" id="input-lng" step="0.00001" placeholder="e.g. -120.93426" />
+        </div>
+        <button class="save-location-btn" id="save-location-btn" onclick="saveLocation()">
+          Save Location
+        </button>
+      </div>
+      <div class="save-status" id="save-status"></div>
+      <div class="location-hint">
+        To find coordinates: open Google Maps, right-click on the trap location, and the coordinates will appear at the top of the menu. Click them to copy.
+        <br>Latitude is the first number (e.g. 37.35368) · Longitude is the second (e.g. -120.93426)
+      </div>
+    </div>
 
       <div class="location-fields">
         <div class="field-group">
@@ -423,6 +443,11 @@
         <div class="chart-header">
           <div class="chart-title">Temperature over time <span>/ °F</span></div>
           <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b7a6c">
+              Min: <strong id="temp-min">—</strong>&nbsp;
+              Avg: <strong id="temp-avg">—</strong>&nbsp;
+              Max: <strong id="temp-max">—</strong>
+            </span>
             <span class="zoom-hint">Scroll to zoom · Drag to pan</span>
             <button class="reset-zoom-btn" id="reset-temp" onclick="resetZoom('chart-temp','reset-temp')">Reset</button>
           </div>
@@ -653,7 +678,15 @@
         maintainAspectRatio: false,
         animation: false,
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+              labels: {
+                font: { family: "'IBM Plex Mono'", size: 13 },
+                color: "#1a1f1a",
+                boxWidth: 12,
+                padding: 16
+              }
+          },
           zoom: {
             pan: {
               enabled: true,
@@ -671,11 +704,21 @@
         scales: {
           x: {
             type: "time",
-            time: { tooltipFormat: "MMM d, h:mm a" },
+            time: {
+              tooltipFormat: "MMM d, h:mm a",
+              displayFormats: {
+                minute: "h:mm a",
+                hour:   "MMM d, ha",
+                day:    "MMM d",
+                week:   "MMM d",
+                month:  "MMM yyyy"
+              }
+            },
             ticks: {
               color: "#6b7a6c",
-              font: { family: "'IBM Plex Mono'" },
+              font: { family: "'IBM Plex Mono'", size: 12 },
               maxTicksLimit: 8
+              maxRotation: 0
             },
             grid: { color: "#e2e5e2" }
           },
@@ -684,7 +727,7 @@
             grace: "5%",
             ticks: {
               color: "#6b7a6c",
-              font: { family: "'IBM Plex Mono'" }
+              font: { family: "'IBM Plex Mono'", size: 12 }
             },
             grid: { color: "#e2e5e2" }
           }
@@ -777,7 +820,12 @@
     else
       document.getElementById("stat-battery").innerHTML =
         `—<span class="stat-unit">(not wired)</span>`;
-
+    if (tempData.length) {
+      const vals = tempData.map(p => p.y);
+      document.getElementById("temp-min").textContent = Math.min(...vals).toFixed(1) + "°F";
+      document.getElementById("temp-avg").textContent = (vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(1) + "°F";
+      document.getElementById("temp-max").textContent = Math.max(...vals).toFixed(1) + "°F";
+    }
     makeChart("chart-temp",     "Temperature", "rgb(234, 88, 12)",  tempData,   "reset-temp");
     makeChart("chart-humidity", "Humidity",    "rgb(14, 116, 144)", humData,    "reset-humidity");
     makeChart("chart-insects",  "Insects",     "rgb(22, 163, 74)",  insectData, "reset-insects");
