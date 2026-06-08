@@ -41,7 +41,7 @@
 
     .main { display: flex; flex: 1; overflow: hidden; }
 
-    .sidebar { width: 300px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+    .sidebar { width: 450px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
     .sidebar-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
     .sidebar-title { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 4px; }
     .node-count { font-size: 13px; color: var(--text); }
@@ -72,8 +72,8 @@
 
     .node-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .metric { display: flex; flex-direction: column; gap: 2px; }
-    .metric-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
-    .metric-value { font-size: 16px; font-weight: 500; color: var(--text); line-height: 1; }
+    .metric-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .metric-value { font-size: 19px; font-weight: 500; color: var(--text); line-height: 1; }
     .metric-value.insects { color: var(--accent); font-family: 'IBM Plex Mono', monospace; }
     .metric-unit { font-size: 10px; color: var(--muted); margin-left: 2px; }
     .metric-sub  { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); }
@@ -93,8 +93,12 @@
 
     .map-overlay { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.92); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); backdrop-filter: blur(8px); pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,0.1); z-index: 500; }
     .map-overlay strong { color: var(--accent); display: block; margin-bottom: 2px; font-size: 11px; }
-    .map-legend { position: absolute; bottom: 16px; right: 16px; background: rgba(255,255,255,0.92); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); backdrop-filter: blur(8px); box-shadow: 0 1px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 6px; z-index: 500; pointer-events: none; }
-    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .map-legend { position: absolute; bottom: 16px; right: 16px; background: rgba(255,255,255,0.92); border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--muted); backdrop-filter: blur(8px); box-shadow: 0 1px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 9px; z-index: 500; pointer-events: none; }
+    .legend-item { display: flex; align-items: center; gap: 10px; }
+    .legend-dot { width:13px;height:13px;border-radius:50%;background:#dc2626;border:2px solid white;box-shadow:0 0 0 1px #dc2626;flex-shrink:0; }
+    .legend-diamond { width:13px;height:13px;background:var(--rover);transform:rotate(45deg);border:1.5px solid white;box-shadow:0 0 0 1px var(--rover);flex-shrink:0; }
+    .legend-dash { width:22px;height:2px;border-top:2px dashed var(--rover);flex-shrink:0; }
+    .legend-circle { width:16px;height:16px;border-radius:50%;background:rgba(29,78,216,0.12);border:1.5px dashed rgba(29,78,216,0.4);flex-shrink:0; }    .legend-item { display: flex; align-items: center; gap: 8px; }
     .legend-dot { width:10px;height:10px;border-radius:50%;background:#dc2626;border:2px solid white;box-shadow:0 0 0 1px #dc2626;flex-shrink:0; }
     .legend-diamond { width:10px;height:10px;background:var(--rover);transform:rotate(45deg);border:1.5px solid white;box-shadow:0 0 0 1px var(--rover);flex-shrink:0; }
     .legend-dash { width:18px;height:2px;border-top:2px dashed var(--rover);flex-shrink:0; }
@@ -224,6 +228,14 @@
       justify-content: space-between;
       font-size: 10px;
       color: var(--muted);
+    }
+
+    .metric-stats {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px;
+      letter-spacing: 0.04em;
     }
   </style>
 </head>
@@ -378,7 +390,7 @@
   }
 
   async function buildNodeCard(nodeId, coords) {
-    const rows    = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=timestamp_received.desc&limit=50`);
+    const rows    = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=timestamp_received.desc&limit=200`);
     const hasData = Array.isArray(rows) && rows.length > 0;
     const find    = type => hasData ? rows.find(r => r.event_type === type) : null;
     const temp    = find("temp"), hum = find("humidity"), topRow = hasData ? rows[0] : null;
@@ -396,6 +408,18 @@
     const toF     = c => ((c * 9/5) + 32).toFixed(1);
     const tempVal = temp ? toF(parseFloat(temp.event_value)) : "—";
     const humVal  = hum  ? parseFloat(hum.event_value).toFixed(1) : "—";
+    const tempRows = hasData ? rows.filter(r => r.event_type === "temp" && r.event_value !== null) : [];
+    const humRows  = hasData ? rows.filter(r => r.event_type === "humidity" && r.event_value !== null) : [];
+    const tempFs   = tempRows.map(r => parseFloat(toF(parseFloat(r.event_value))));
+    const humVals  = humRows.map(r => parseFloat(r.event_value));
+    const tempMin  = tempFs.length  ? Math.min(...tempFs).toFixed(1)                              : null;
+    const tempMax  = tempFs.length  ? Math.max(...tempFs).toFixed(1)                              : null;
+    const tempAvg  = tempFs.length  ? (tempFs.reduce((a,b)=>a+b,0)/tempFs.length).toFixed(1)     : null;
+    const humMin   = humVals.length ? Math.min(...humVals).toFixed(1)                             : null;
+    const humMax   = humVals.length ? Math.max(...humVals).toFixed(1)                             : null;
+    const humAvg   = humVals.length ? (humVals.reduce((a,b)=>a+b,0)/humVals.length).toFixed(1)   : null;
+    const tempStats = tempMin ? `<div class="metric-stats">↓${tempMin} ⌀${tempAvg} ↑${tempMax}</div>` : "";
+    const humStats  = humMin  ? `<div class="metric-stats">↓${humMin} ⌀${humAvg} ↑${humMax}</div>`  : "";
     const battRaw = topRow ? parseFloat(topRow.battery_voltage) : null;
     const battVal = (battRaw !== null && battRaw > 0) ? battRaw : null;
     const rssi    = topRow ? topRow.signal_strength_rssi : null;
@@ -423,8 +447,8 @@
     card.innerHTML = `
       <div class="node-card-header"><div class="node-id">${nodeId}</div>${statusHtml}</div>
       <div class="node-metrics">
-        <div class="metric"><div class="metric-label">Temperature</div><div class="metric-value">${tempVal}<span class="metric-unit">${temp ? '°F' : ''}</span></div></div>
-        <div class="metric"><div class="metric-label">Humidity</div><div class="metric-value">${humVal}<span class="metric-unit">${hum ? '%' : ''}</span></div></div>
+        <div class="metric"><div class="metric-label">Temperature</div><div class="metric-value">${tempVal}<span class="metric-unit">${temp ? '°F' : ''}</span></div>${tempStats}</div>
+        <div class="metric"><div class="metric-label">Humidity</div><div class="metric-value">${humVal}<span class="metric-unit">${hum ? '%' : ''}</span></div>${humStats}</div>
         <div class="metric"><div class="metric-label">Insects</div><div class="metric-value insects">${added - removed}</div></div>
         <div class="metric"><div class="metric-label">Battery</div><div class="metric-value">${battVal !== null ? battVal.toFixed(2) : '—'}<span class="metric-unit">${battVal !== null ? 'V' : '(not wired)'}</span></div><div class="metric-sub">RSSI: ${rssi !== null ? rssi + ' dBm' : '—'}</div></div>
       </div>
