@@ -180,14 +180,14 @@
     /* ── HEATMAP LEGEND (right side, above map-legend) ── */
     .heatmap-legend {
       position: absolute;
-      bottom: 210px;
+      bottom: 130px;
       right: 16px;
       background: rgba(255,255,255,0.92);
       border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 14px 16px;
+      padding: 12px 14px;
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
+      font-size: 10px;
       color: var(--muted);
       backdrop-filter: blur(8px);
       box-shadow: 0 1px 4px rgba(0,0,0,0.1);
@@ -195,13 +195,13 @@
       display: none;
       flex-direction: column;
       gap: 6px;
-      min-width: 130px;
+      min-width: 110px;
     }
 
     .heatmap-legend.visible { display: flex; }
 
     .heatmap-legend-title {
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.1em;
       color: var(--text);
@@ -210,8 +210,8 @@
     }
 
     .heatmap-legend-bar {
-      width: 20px;
-      height: 160px;
+      width: 16px;
+      height: 120px;
       border-radius: 4px;
       flex-shrink: 0;
     }
@@ -226,7 +226,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      font-size: 11px;
+      font-size: 10px;
       color: var(--muted);
     }
 
@@ -369,7 +369,7 @@
     <div class="heatmap-legend" id="heatmap-legend">
       <div class="heatmap-legend-title" id="heatmap-legend-title">Temperature</div>
       <div class="heatmap-legend-body">
-        <canvas class="heatmap-legend-bar" id="heatmap-legend-bar" width="20" height="160"></canvas>
+        <canvas class="heatmap-legend-bar" id="heatmap-legend-bar" width="16" height="120"></canvas>
         <div class="heatmap-legend-labels">
           <span id="heatmap-legend-max">—</span>
           <span id="heatmap-legend-mid">—</span>
@@ -489,8 +489,10 @@
       lastSeenFull = new Date(topRow.timestamp_received).toLocaleString();
     }
 
-    const added   = hasData ? rows.filter(r => r.event_type === "beetle_count_added").length   : 0;
-    const removed = hasData ? rows.filter(r => r.event_type === "beetle_count_removed").length : 0;
+    // Fetch ALL beetle events separately — the 200-row sensor limit above would otherwise cut off older beetle events
+    const beetleRows = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&event_type=in.(beetle_count_added,beetle_count_removed)&select=event_type`);
+    const added   = Array.isArray(beetleRows) ? beetleRows.filter(r => r.event_type === "beetle_count_added").length   : 0;
+    const removed = Array.isArray(beetleRows) ? beetleRows.filter(r => r.event_type === "beetle_count_removed").length : 0;
     const toF     = c => ((c * 9/5) + 32).toFixed(1);
     const tempVal = temp ? toF(parseFloat(temp.event_value)) : "—";
     const humVal  = hum  ? parseFloat(hum.event_value).toFixed(1) : "—";
@@ -779,7 +781,7 @@
       const t     = 1 - y / (h - 1);  // top=max, bottom=min
       const [r,g,b] = valueToColor(t);
       ctx.fillStyle = `rgb(${r},${g},${b})`;
-      ctx.fillRect(0, y, 20, 1);
+      ctx.fillRect(0, y, 16, 1);
     }
     const mid = (minVal + maxVal) / 2;
     const unit = field === "temp" ? "°F" : "%";
