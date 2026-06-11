@@ -764,6 +764,149 @@
     return chart;
   }
 
+  // ── Insect chart with per-event markers ─────────────────
+  function makeInsectChart(insectData, allInsectRows, resetBtnId) {
+    // Build a scatter dataset: one point per detection event,
+    // plotted at the running-total y value at that moment.
+    // Added events = upward triangle (green), removed = downward triangle (red).
+    let runningForMarkers = 0;
+    const addedPoints   = [];
+    const removedPoints = [];
+
+    allInsectRows.forEach(r => {
+      const isAdded = r.event_type === "beetle_count_added";
+      runningForMarkers += isAdded ? 1 : -1;
+      const pt = { x: resolveTimestamp(r), y: runningForMarkers };
+      if (isAdded) addedPoints.push(pt);
+      else         removedPoints.push(pt);
+    });
+
+    const chart = new Chart(document.getElementById("chart-insects"), {
+      data: {
+        datasets: [
+          // Line — cumulative count
+          {
+            type: "line",
+            label: "Insects",
+            data: insectData,
+            borderColor: "rgb(22, 163, 74)",
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.3,
+            fill: true,
+            backgroundColor: "rgba(22, 163, 74, 0.08)",
+            order: 2
+          },
+          // Scatter — entry events (beetle added)
+          {
+            type: "scatter",
+            label: "Entry (+1)",
+            data: addedPoints,
+            pointStyle: "triangle",      // upward triangle = entered
+            pointRadius: 7,
+            pointHoverRadius: 9,
+            rotation: 0,
+            backgroundColor: "rgba(22, 163, 74, 0.85)",
+            borderColor: "#fff",
+            borderWidth: 1.5,
+            order: 1
+          },
+          // Scatter — exit events (beetle removed)
+          {
+            type: "scatter",
+            label: "Exit (−1)",
+            data: removedPoints,
+            pointStyle: "triangle",      // downward triangle = exited
+            pointRadius: 7,
+            pointHoverRadius: 9,
+            rotation: 180,
+            backgroundColor: "rgba(220, 38, 38, 0.85)",
+            borderColor: "#fff",
+            borderWidth: 1.5,
+            order: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              font: { family: "'IBM Plex Mono'", size: 13 },
+              color: "#1a1f1a",
+              boxWidth: 12,
+              padding: 16,
+              usePointStyle: true
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                if (ctx.datasetIndex === 0) {
+                  return `Count: ${ctx.parsed.y}`;
+                }
+                const isEntry = ctx.datasetIndex === 1;
+                const ts = ctx.parsed.x
+                  ? new Date(ctx.parsed.x).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                  : "—";
+                return `${isEntry ? "▲ Entry" : "▼ Exit"} at ${ts} → total: ${ctx.parsed.y}`;
+              }
+            }
+          },
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: "x",
+              onPanComplete: () => showResetBtn(resetBtnId)
+            },
+            zoom: {
+              wheel: { enabled: true },
+              pinch: { enabled: true },
+              mode: "x",
+              onZoomComplete: () => showResetBtn(resetBtnId)
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: "time",
+            time: {
+              tooltipFormat: "MMM d, h:mm a",
+              displayFormats: {
+                minute: "h:mm a",
+                hour:   "MMM d, ha",
+                day:    "MMM d",
+                week:   "MMM d",
+                month:  "MMM yyyy"
+              }
+            },
+            ticks: {
+              color: "#6b7a6c",
+              font: { family: "'IBM Plex Mono'", size: 12 },
+              maxTicksLimit: 8,
+              maxRotation: 0
+            },
+            grid: { color: "#e2e5e2" }
+          },
+          y: {
+            grace: "5%",
+            ticks: {
+              color: "#6b7a6c",
+              font: { family: "'IBM Plex Mono'", size: 12 }
+            },
+            grid: { color: "#e2e5e2" }
+          }
+        }
+      }
+    });
+
+    chartInstances["chart-insects"] = chart;
+    return chart;
+  }
+
   function showResetBtn(btnId) {
     const btn = document.getElementById(btnId);
     if (btn) btn.classList.add("visible");
@@ -891,7 +1034,7 @@
     // Render charts
     makeChart("chart-temp",     "Temperature (°F)", "rgb(234, 88, 12)",  tempData,   "reset-temp");
     makeChart("chart-humidity", "Humidity (%)",     "rgb(14, 116, 144)", humData,    "reset-humidity");
-    makeChart("chart-insects",  "Insects",          "rgb(22, 163, 74)",  insectData, "reset-insects");
+    makeInsectChart(insectData, allInsectRows, "reset-insects");
     makeChart("chart-battery",  "Battery (V)",      "rgb(124, 58, 237)", battData,   "reset-battery");
   });
 </script>
