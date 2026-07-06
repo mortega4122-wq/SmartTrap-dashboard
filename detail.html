@@ -543,13 +543,17 @@
   const toF = c => (c * 9/5) + 32;
 
   // ── Timestamp resolution ─────────────────────────────────
+  // NOTE: the Supabase trap_data table has no timestamp_received column
+  // (it was dropped from the schema) -- upload_timestamp is the real,
+  // synced wall-clock time the batch was uploaded to the Pi, and is the
+  // correct fallback/ordering field now.
   function resolveTimestamp(row) {
     const et = row.event_timestamp;
     if (et && !et.startsWith("UNSYNCED_")) {
       const d = new Date(et);
       if (!isNaN(d.getTime())) return d;
     }
-    return new Date(row.timestamp_received);
+    return new Date(row.upload_timestamp);
   }
 
   function rollingAverage(data, windowSize = 5) {
@@ -568,7 +572,7 @@
   async function fetchNodeData() {
     const since = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/trap_data?node_id=eq.${encodeURIComponent(nodeId)}&timestamp_received=gte.${since}&order=timestamp_received.asc`,
+      `${SUPABASE_URL}/rest/v1/trap_data?node_id=eq.${encodeURIComponent(nodeId)}&upload_timestamp=gte.${since}&order=upload_timestamp.asc`,
       {
         headers: {
           "apikey": SUPABASE_KEY,
@@ -949,7 +953,7 @@
     document.getElementById("loading").style.display  = "none";
     document.getElementById("main-content").style.display = "block";
 
-    if (!rows || rows.length === 0) {
+    if (!Array.isArray(rows) || rows.length === 0) {
       document.getElementById("page-subtitle").textContent = "No data found for this node.";
       return;
     }
@@ -957,8 +961,8 @@
     // Header meta
     const fw = rows[rows.length - 1].firmware_version || "—";
     document.getElementById("firmware-badge").textContent = `fw ${fw}`;
-    const firstSeen = new Date(rows[0].timestamp_received).toLocaleDateString();
-    const lastSeen  = new Date(rows[rows.length - 1].timestamp_received).toLocaleString();
+    const firstSeen = new Date(rows[0].upload_timestamp).toLocaleDateString();
+    const lastSeen  = new Date(rows[rows.length - 1].upload_timestamp).toLocaleString();
     document.getElementById("page-subtitle").textContent =
       `First seen: ${firstSeen} · Last seen: ${lastSeen} · ${rows.length} records`;
 

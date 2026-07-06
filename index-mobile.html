@@ -570,16 +570,17 @@
 
   async function buildNodeCard(nodeId, coords) {
     const rows = await fetchFromSupabase(
-      `trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=timestamp_received.desc&limit=50`
+      `trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=upload_timestamp.desc&limit=50`
     );
 
-    const latest    = (type) => rows.find(r => r.event_type === type);
+    const hasData   = Array.isArray(rows) && rows.length > 0;
+    const latest    = (type) => hasData ? rows.find(r => r.event_type === type) : null;
     const temp      = latest("temp");
     const humidity  = latest("humidity");
-    const battery   = rows[0];
+    const battery   = hasData ? rows[0] : null;
 
-    const added     = rows.filter(r => r.event_type === "beetle_count_added").length;
-    const removed   = rows.filter(r => r.event_type === "beetle_count_removed").length;
+    const added     = hasData ? rows.filter(r => r.event_type === "beetle_count_added").length   : 0;
+    const removed   = hasData ? rows.filter(r => r.event_type === "beetle_count_removed").length : 0;
     const insectVal = added - removed;
 
     const toF      = c => ((c * 9/5) + 32).toFixed(1);
@@ -588,7 +589,7 @@
     const battRaw  = battery  ? parseFloat(battery.battery_voltage)          : null;
     const battVal  = (battRaw !== null && battRaw > 0) ? battRaw : null;
     const rssi     = battery  ? battery.signal_strength_rssi                 : null;
-    const lastSeen = battery  ? new Date(battery.timestamp_received).toLocaleTimeString() : "—";
+    const lastSeen = battery  ? new Date(battery.upload_timestamp).toLocaleTimeString() : "—";
 
     let battColor = "#4ade80";
     let battPct   = 100;

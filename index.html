@@ -476,17 +476,17 @@
   }
 
   async function buildNodeCard(nodeId, coords) {
-    const rows    = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=timestamp_received.desc&limit=200`);
+    const rows    = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=upload_timestamp.desc&limit=200`);
     const hasData = Array.isArray(rows) && rows.length > 0;
     const find    = type => hasData ? rows.find(r => r.event_type === type) : null;
     const temp    = find("temp"), hum = find("humidity"), topRow = hasData ? rows[0] : null;
 
     let isLive = false, lastSeenStr = "—", lastSeenFull = "—";
-    if (topRow?.timestamp_received) {
-      const agoMin = (Date.now() - new Date(topRow.timestamp_received).getTime()) / 60000;
+    if (topRow?.upload_timestamp) {
+      const agoMin = (Date.now() - new Date(topRow.upload_timestamp).getTime()) / 60000;
       isLive = agoMin <= LIVE_THRESHOLD_MINUTES;
-      lastSeenStr  = new Date(topRow.timestamp_received).toLocaleTimeString();
-      lastSeenFull = new Date(topRow.timestamp_received).toLocaleString();
+      lastSeenStr  = new Date(topRow.upload_timestamp).toLocaleTimeString();
+      lastSeenFull = new Date(topRow.upload_timestamp).toLocaleString();
     }
 
     // Fetch ALL beetle events separately — the 200-row sensor limit above would otherwise cut off older beetle events
@@ -704,7 +704,7 @@
 
     for (const nodeId of nodeIds) {
       const coords = locationMap[nodeId];
-      const rows   = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=timestamp_received.desc&limit=20`);
+      const rows   = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=upload_timestamp.desc&limit=20`);
       if (!Array.isArray(rows)) continue;
       const tempRow = rows.find(r => r.event_type === "temp");
       const humRow  = rows.find(r => r.event_type === "humidity");
