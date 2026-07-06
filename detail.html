@@ -420,7 +420,10 @@
         <div class="page-title" id="page-node-id">—</div>
         <div class="page-subtitle" id="page-subtitle">—</div>
       </div>
-      <button class="remove-node-btn" id="remove-node-btn" onclick="removeNode()">✕ Remove Node</button>
+      <div style="display:flex; gap:8px; flex-shrink:0;">
+        <button class="remove-node-btn" id="clear-data-btn" onclick="clearNodeData()">🗑 Clear Node Data</button>
+        <button class="remove-node-btn" id="remove-node-btn" onclick="removeNode()">✕ Remove Node</button>
+      </div>
     </div>
 
     <!-- Stat cards -->
@@ -944,6 +947,52 @@
     } catch(e) {
       btn.disabled = false;
       btn.textContent = "✕ Remove Node";
+      alert("Network error: " + e.message);
+    }
+  }
+
+  // ── Clear node data ──────────────────────────────────────
+  // Deletes every trap_data row for this node from Supabase directly,
+  // so this doesn't need to be done manually in the Supabase console.
+  // Does NOT touch node_locations -- the node stays on the dashboard,
+  // just with its sensor history wiped.
+  async function clearNodeData() {
+    const btn = document.getElementById("clear-data-btn");
+    const confirmed = confirm(
+      `Delete ALL sensor data for "${nodeId}"?\n\n` +
+      `This permanently removes every trap_data record for this node from Supabase ` +
+      `(temperature, humidity, insect counts, battery history). This cannot be undone.\n\n` +
+      `The node itself and its saved GPS location are kept.`
+    );
+    if (!confirmed) return;
+
+    btn.disabled = true;
+    btn.textContent = "Clearing…";
+
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/trap_data?node_id=eq.${encodeURIComponent(nodeId)}`,
+        {
+          method: "DELETE",
+          headers: {
+            "apikey": SUPABASE_KEY,
+            "Authorization": `Bearer ${SUPABASE_KEY}`,
+            "Prefer": "return=minimal"
+          }
+        }
+      );
+
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const errText = await res.text();
+        btn.disabled = false;
+        btn.textContent = "🗑 Clear Node Data";
+        alert(`Failed to clear data: ${errText}`);
+      }
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = "🗑 Clear Node Data";
       alert("Network error: " + e.message);
     }
   }
