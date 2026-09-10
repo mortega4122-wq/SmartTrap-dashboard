@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartTrap Scout Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script>requireLogin();</script>
+  <link rel="stylesheet" href="css/account.css">
+
+  <script>
+    if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      window.location.replace("index-mobile.html");
+    }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --bg:      #f5f6f4; --surface: #ffffff; --border: #e2e5e2;
+      --accent:  #1a7a3c; --accent2: #2da653; --warn:   #b45309;
+      --danger:  #dc2626; --rover:   #1d4ed8; --text:   #1a1f1a;
+      --muted:   #6b7a6c; --card-bg: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    header { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 52px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+    .logo { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; }
+    .header-meta { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 16px; }
+    #last-updated { color: var(--accent2); }
+    .rover-status { display: flex; align-items: center; gap: 6px; color: var(--rover); }
+    .rover-dot { width: 7px; height: 7px; background: var(--rover); transform: rotate(45deg); animation: pulse 2s infinite; flex-shrink: 0; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    .tab-nav { display: flex; align-items: stretch; background: var(--surface); border-bottom: 2px solid var(--border); padding: 0 20px; gap: 4px; flex-shrink: 0; height: 46px; }
+    .tab-btn { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); background: none; border: none; border-bottom: 3px solid transparent; padding: 0 20px; margin-bottom: -2px; cursor: pointer; transition: all 0.15s; border-radius: 6px 6px 0 0; text-decoration: none; display: flex; align-items: center; }
+    .tab-btn:hover { color: var(--text); background: var(--bg); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--bg); }
+
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    .sidebar { width: 450px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+    .sidebar-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .sidebar-title { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 4px; }
+    .node-count { font-size: 13px; color: var(--text); }
+    .node-count span { color: var(--accent); font-weight: 500; }
+
+    .rover-card { margin: 12px 12px 0; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 14px; flex-shrink: 0; }
+    .rover-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .rover-card-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: var(--rover); text-transform: uppercase; letter-spacing: 0.08em; }
+    .rover-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .rover-metric { display: flex; flex-direction: column; gap: 1px; }
+    .rover-metric-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #6b7a6c; }
+    .rover-metric-value { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--rover); }
+
+    .nodes-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .nodes-list::-webkit-scrollbar { width: 4px; }
+    .nodes-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .node-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; transition: border-color 0.15s, background 0.15s; display: block; color: inherit; text-decoration: none; }
+    .node-card:hover { border-color: var(--accent); background: #f0f7f2; }
+    .node-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .node-id { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: var(--accent); }
+    .node-status { display: flex; align-items: center; gap: 5px; font-family: 'IBM Plex Mono', monospace; }
+    .node-status.live  { color: var(--accent); font-weight: 700; font-size: 12px; }
+    .node-status.stale { color: var(--warn);   font-weight: 700; font-size: 12px; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.live  { background: var(--accent); animation: pulse 2s infinite; }
+    .status-dot.stale { background: var(--warn); }
+
+    .node-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .metric { display: flex; flex-direction: column; gap: 2px; }
+    .metric-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .metric-value { font-size: 19px; font-weight: 500; color: var(--text); line-height: 1; }
+    .metric-value.insects { color: var(--accent); font-family: 'IBM Plex Mono', monospace; }
+    .metric-unit { font-size: 10px; color: var(--muted); margin-left: 2px; }
+    .metric-sub  { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); }
+
+    .stale-banner { margin-top: 10px; padding: 6px 10px; background: #fef9f0; border: 1px solid #f5d9a8; border-radius: 5px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--warn); line-height: 1.4; }
+    .node-location-badge { margin-top: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--muted); }
+    .node-location-badge.no-location { color: var(--warn); }
+    .battery-bar { margin-top: 10px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .battery-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+    .view-detail-btn { margin-top: 12px; width: 100%; padding: 7px; background: transparent; border: 1px solid var(--border); border-radius: 5px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; transition: all 0.15s; text-align: center; text-decoration: none; display: block; }
+    .view-detail-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .loading-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px; text-align: center; color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+
+    .map-container { flex: 1; position: relative; }
+    #map-view { width: 100%; height: 100%; }
+    .leaflet-container { font-family: 'DM Sans', sans-serif; }
+
+    .map-overlay { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.92); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); backdrop-filter: blur(8px); pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,0.1); z-index: 500; }
+    .map-overlay strong { color: var(--accent); display: block; margin-bottom: 2px; font-size: 11px; }
+    .map-legend { position: absolute; bottom: 16px; right: 16px; background: rgba(255,255,255,0.92); border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--muted); backdrop-filter: blur(8px); box-shadow: 0 1px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 9px; z-index: 500; pointer-events: none; }
+    .legend-item { display: flex; align-items: center; gap: 10px; }
+    .legend-dot { width:13px;height:13px;border-radius:50%;background:#dc2626;border:2px solid white;box-shadow:0 0 0 1px #dc2626;flex-shrink:0; }
+    .legend-diamond { width:13px;height:13px;background:var(--rover);transform:rotate(45deg);border:1.5px solid white;box-shadow:0 0 0 1px var(--rover);flex-shrink:0; }
+    .legend-dash { width:22px;height:2px;border-top:2px dashed var(--rover);flex-shrink:0; }
+    .legend-circle { width:16px;height:16px;border-radius:50%;background:rgba(29,78,216,0.12);border:1.5px dashed rgba(29,78,216,0.4);flex-shrink:0; }    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .legend-dot { width:10px;height:10px;border-radius:50%;background:#dc2626;border:2px solid white;box-shadow:0 0 0 1px #dc2626;flex-shrink:0; }
+    .legend-diamond { width:10px;height:10px;background:var(--rover);transform:rotate(45deg);border:1.5px solid white;box-shadow:0 0 0 1px var(--rover);flex-shrink:0; }
+    .legend-dash { width:18px;height:2px;border-top:2px dashed var(--rover);flex-shrink:0; }
+    .legend-circle { width:14px;height:14px;border-radius:50%;background:rgba(29,78,216,0.12);border:1.5px dashed rgba(29,78,216,0.4);flex-shrink:0; }
+    .no-location-banner { position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(180,83,9,0.92);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 16px;border-radius:6px;pointer-events:none;display:none;z-index:500; }
+
+    /* ── HEATMAP TOGGLES (bottom-left) ── */
+    .heatmap-controls {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 500;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .heatmap-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      padding-left: 2px;
+      margin-bottom: 2px;
+    }
+
+    .heatmap-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .heatmap-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .heatmap-btn.active {
+      background: var(--text);
+      border-color: var(--text);
+      color: #fff;
+    }
+
+    .heatmap-btn.active .heatmap-btn-dot {
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.4);
+    }
+
+    .heatmap-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      color: var(--muted);
+    }
+
+    .heatmap-btn-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── HEATMAP LEGEND (right side, above map-legend) ── */
+    .heatmap-legend {
+      position: absolute;
+      bottom: 130px;
+      right: 16px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      z-index: 500;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 110px;
+    }
+
+    .heatmap-legend.visible { display: flex; }
+
+    .heatmap-legend-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .heatmap-legend-bar {
+      width: 16px;
+      height: 120px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .heatmap-legend-body {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .heatmap-legend-labels {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .metric-stats {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px;
+      letter-spacing: 0.04em;
+    }
+
+    .farm-stats-card {
+      margin: 10px 12px 0;
+      background: #f0faf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      flex-shrink: 0;
+    }
+    .farm-stats-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .farm-stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .farm-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .farm-stat-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+    .farm-stat-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+    .farm-stat-unit {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SmartTrap // Scout Network</div>
+  <div class="header-meta">
+    <a class="site-link" href="../index.html">← VerdanTech</a>
+    <div class="rover-status">
+      <div class="rover-dot"></div>
+      <span id="rover-header-status">Rover: loading...</span>
+    </div>
+    Last sync: <span id="last-updated">—</span>
+    <button class="signout-btn" onclick="signOut()">Sign out</button>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active">📡 Dashboard</button>
+  <a class="tab-btn" href="orchard-setup.html">🗺 Orchard Setup</a>
+  <a class="tab-btn" href="scan.html">➕ Add Node</a>
+</nav>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Field Nodes</div>
+      <div class="node-count"><span id="node-count">—</span> registered nodes</div>
+    </div>
+    <div class="farm-stats-card" id="farm-stats-card" style="display:none">
+      <div class="farm-stats-title">🌿 Farm Overview</div>
+      <div class="farm-stats-row">
+        <div class="farm-stat">
+          <div class="farm-stat-label">Avg Temp</div>
+          <div class="farm-stat-value" id="farm-avg-temp">—<span class="farm-stat-unit">°F</span></div>
+        </div>
+        <div class="farm-stat">
+          <div class="farm-stat-label">Avg Humidity</div>
+          <div class="farm-stat-value" id="farm-avg-hum">—<span class="farm-stat-unit">%</span></div>
+        </div>
+        <div class="farm-stat">
+          <div class="farm-stat-label">Temp Range</div>
+          <div class="farm-stat-value" id="farm-range-temp" style="font-size:13px">—</div>
+        </div>
+        <div class="farm-stat">
+          <div class="farm-stat-label">Hum Range</div>
+          <div class="farm-stat-value" id="farm-range-hum" style="font-size:13px">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="rover-card">
+      <div class="rover-card-header">
+        <div class="rover-dot"></div>
+        <div class="rover-card-title">Mobile Gateway / Rover</div>
+      </div>
+      <div class="rover-metrics">
+        <div class="rover-metric"><div class="rover-metric-label">Last Position</div><div class="rover-metric-value" id="rover-last-pos">—</div></div>
+        <div class="rover-metric"><div class="rover-metric-label">Last Seen</div><div class="rover-metric-value" id="rover-last-seen">—</div></div>
+        <div class="rover-metric"><div class="rover-metric-label">Total Pings</div><div class="rover-metric-value" id="rover-stop-count">—</div></div>
+        <div class="rover-metric"><div class="rover-metric-label">WiFi Radius</div><div class="rover-metric-value">~30m</div></div>
+        <div class="rover-metric" style="grid-column: span 2"><div class="rover-metric-label">First Deployed</div><div class="rover-metric-value" id="rover-first-seen" style="font-size:10px">—</div></div>
+      </div>
+    </div>
+    <div class="nodes-list" id="nodes-list">
+      <div class="loading-card">Loading nodes...</div>
+    </div>
+  </div>
+
+  <div class="map-container">
+    <div id="map-view"></div>
+
+    <!-- Heatmap canvas — anchored inside Leaflet's own map pane -->
+    <canvas id="heatmap-canvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:200;display:none;"></canvas>
+
+    <div class="map-overlay">
+      <strong id="map-overlay-city">Loading location...</strong>
+      Almond orchard monitoring
+    </div>
+    <div class="map-legend">
+      <div class="legend-item"><div class="legend-dot"></div> Trap node</div>
+      <div class="legend-item"><div class="legend-diamond"></div> Rover (current)</div>
+      <div class="legend-item"><div class="legend-dash"></div> Rover path</div>
+      <div class="legend-item"><div class="legend-circle"></div> WiFi detection radius</div>
+    </div>
+
+    <!-- Heatmap gradient legend -->
+    <div class="heatmap-legend" id="heatmap-legend">
+      <div class="heatmap-legend-title" id="heatmap-legend-title">Temperature</div>
+      <div class="heatmap-legend-body">
+        <canvas class="heatmap-legend-bar" id="heatmap-legend-bar" width="16" height="120"></canvas>
+        <div class="heatmap-legend-labels">
+          <span id="heatmap-legend-max">—</span>
+          <span id="heatmap-legend-mid">—</span>
+          <span id="heatmap-legend-min">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Heatmap toggle buttons -->
+    <div class="heatmap-controls">
+      <div class="heatmap-label">Heatmap</div>
+      <button class="heatmap-btn" id="btn-heat-temp" onclick="toggleHeatmap('temp')">
+        <div class="heatmap-btn-dot" style="background:#f97316"></div> Temperature
+      </button>
+      <button class="heatmap-btn" id="btn-heat-hum" onclick="toggleHeatmap('humidity')">
+        <div class="heatmap-btn-dot" style="background:#38bdf8"></div> Humidity
+      </button>
+      <button class="heatmap-btn" disabled id="btn-heat-pest">
+        <div class="heatmap-btn-dot" style="background:#a78bfa"></div> Pest Conc. <span style="font-size:8px;opacity:0.6">SOON</span>
+      </button>
+    </div>
+
+    <div class="no-location-banner" id="no-location-banner">
+      ⚠ Some nodes have no GPS coordinates — visit node detail to add them
+    </div>
+  </div>
+</div>
+
+<script>
+  const ARCGIS_KEY             = "AAPTaVBgWcwmkBkx6iqYw7uXtbQ..Osa6s3wYR1qeRc-FHJv-7xo0qGUcE_UXWBIy5Ugb6hg_DkQRKOfWMrceCvMXt_LcWmXGYoruj5TTc-rTFi58dvkeNDUw28EyxSIBq89chY_-NSW5X56boL-xg2Ikb_NuX21QzxzD4YW8w8bMDICciDZZhbfEfFdyNbrImabIrcBz3oqucBTAdiVVBM9eS9m1APnBewxY5p_D2w-KBJ0LWZyd5qqKXj6L_mqQf-5ebYhe-DILAguQGpyAAT1_EKuxh5JG";
+  const DEFAULT_CENTER         = [37.35368, -120.93426];
+  const WIFI_RADIUS_METERS     = 30;
+  const LIVE_THRESHOLD_MINUTES = 3;
+
+  async function sbGet(path) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: await authHeaders()
+    });
+    return res.json();
+  }
+
+  async function fetchNodeLocations() {
+    const rows = await sbGet("node_locations?select=node_id,latitude,longitude");
+    const map  = {};
+    if (Array.isArray(rows)) rows.forEach(r => { map[r.node_id] = [parseFloat(r.latitude), parseFloat(r.longitude)]; });
+    return map;
+  }
+
+  async function fetchRoverHistory() {
+    const rows = await sbGet("rover_location?select=latitude,longitude,timestamp&order=id.asc");
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function fetchNearestCity(lat, lng) {
+    try {
+      const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers: { "Accept-Language": "en-US,en" } });
+      const data = await res.json();
+      const addr = data.address || {};
+      const place = addr.town || addr.village || addr.city || addr.county || null;
+      const state = addr.state_code || addr.state || "";
+      const abbr  = state.length > 2 ? state.slice(0,2).toUpperCase() : state.toUpperCase();
+      return place ? `${place}, ${abbr}` : null;
+    } catch { return null; }
+  }
+
+  async function loadNodes() {
+    const locationMap = await fetchNodeLocations();
+    const nodeIds     = Object.keys(locationMap).sort();
+    document.getElementById("node-count").textContent = nodeIds.length;
+    const list = document.getElementById("nodes-list");
+    list.innerHTML = "";
+    if (nodeIds.length === 0) { list.innerHTML = '<div class="loading-card">No nodes found in database.</div>'; return []; }
+    const nodeData = [];
+    let anyMissing = false;
+    for (const nodeId of nodeIds) {
+      const coords = locationMap[nodeId] || null;
+      if (!coords) anyMissing = true;
+      nodeData.push(await buildNodeCard(nodeId, coords));
+    }
+    if (anyMissing) document.getElementById("no-location-banner").style.display = "block";
+    const validTemps = nodeData.map(n => parseFloat(n.tempVal)).filter(v => !isNaN(v));
+    const validHums  = nodeData.map(n => parseFloat(n.humVal)).filter(v => !isNaN(v));
+    if (validTemps.length > 0 || validHums.length > 0) {
+      const card = document.getElementById("farm-stats-card");
+      card.style.display = "block";
+      if (validTemps.length > 0) {
+        const avg = (validTemps.reduce((a,b) => a+b, 0) / validTemps.length).toFixed(1);
+        const min = Math.min(...validTemps).toFixed(1);
+        const max = Math.max(...validTemps).toFixed(1);
+        document.getElementById("farm-avg-temp").innerHTML  = `${avg}<span class="farm-stat-unit">°F</span>`;
+        document.getElementById("farm-range-temp").innerHTML = `↓${min} <span class="farm-stat-unit">°F</span> · ↑${max} <span class="farm-stat-unit">°F</span>`;
+      }
+      if (validHums.length > 0) {
+        const avg = (validHums.reduce((a,b) => a+b, 0) / validHums.length).toFixed(1);
+        const min = Math.min(...validHums).toFixed(1);
+        const max = Math.max(...validHums).toFixed(1);
+        document.getElementById("farm-avg-hum").innerHTML  = `${avg}<span class="farm-stat-unit">%</span>`;
+        document.getElementById("farm-range-hum").innerHTML = `↓${min} <span class="farm-stat-unit">%</span> · ↑${max} <span class="farm-stat-unit">%</span>`;
+      }
+    }
+    return nodeData;
+  }
+
+  async function buildNodeCard(nodeId, coords) {
+    const rows    = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=upload_timestamp.desc&limit=200`);
+    const hasData = Array.isArray(rows) && rows.length > 0;
+    const find    = type => hasData ? rows.find(r => r.event_type === type) : null;
+    const temp    = find("temp"), hum = find("humidity"), topRow = hasData ? rows[0] : null;
+
+    let isLive = false, lastSeenStr = "—", lastSeenFull = "—";
+    if (topRow?.upload_timestamp) {
+      const agoMin = (Date.now() - new Date(topRow.upload_timestamp).getTime()) / 60000;
+      isLive = agoMin <= LIVE_THRESHOLD_MINUTES;
+      lastSeenStr  = new Date(topRow.upload_timestamp).toLocaleTimeString();
+      lastSeenFull = new Date(topRow.upload_timestamp).toLocaleString();
+    }
+
+    // Fetch ALL beetle events separately — the 200-row sensor limit above would otherwise cut off older beetle events
+    const beetleRows = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&event_type=in.(beetle_count_added,beetle_count_removed)&select=event_type`);
+    const added   = Array.isArray(beetleRows) ? beetleRows.filter(r => r.event_type === "beetle_count_added").length   : 0;
+    const removed = Array.isArray(beetleRows) ? beetleRows.filter(r => r.event_type === "beetle_count_removed").length : 0;
+    const toF     = c => ((c * 9/5) + 32).toFixed(1);
+    const tempVal = temp ? toF(parseFloat(temp.event_value)) : "—";
+    const humVal  = hum  ? parseFloat(hum.event_value).toFixed(1) : "—";
+    const tempRows = hasData ? rows.filter(r => r.event_type === "temp" && r.event_value !== null) : [];
+    const humRows  = hasData ? rows.filter(r => r.event_type === "humidity" && r.event_value !== null) : [];
+    const tempFs   = tempRows.map(r => parseFloat(toF(parseFloat(r.event_value))));
+    const humVals  = humRows.map(r => parseFloat(r.event_value));
+    const tempMin  = tempFs.length  ? Math.min(...tempFs).toFixed(1)                              : null;
+    const tempMax  = tempFs.length  ? Math.max(...tempFs).toFixed(1)                              : null;
+    const tempAvg  = tempFs.length  ? (tempFs.reduce((a,b)=>a+b,0)/tempFs.length).toFixed(1)     : null;
+    const humMin   = humVals.length ? Math.min(...humVals).toFixed(1)                             : null;
+    const humMax   = humVals.length ? Math.max(...humVals).toFixed(1)                             : null;
+    const humAvg   = humVals.length ? (humVals.reduce((a,b)=>a+b,0)/humVals.length).toFixed(1)   : null;
+    const tempStats = tempMin ? `<div class="metric-stats">↓${tempMin} ⌀${tempAvg} ↑${tempMax}</div>` : "";
+    const humStats  = humMin  ? `<div class="metric-stats">↓${humMin} ⌀${humAvg} ↑${humMax}</div>`  : "";
+    const battRaw = topRow ? parseFloat(topRow.battery_voltage) : null;
+    const battVal = (battRaw !== null && battRaw > 0) ? battRaw : null;
+    const rssi    = topRow ? topRow.signal_strength_rssi : null;
+
+    let battColor = "#4ade80", battPct = 100;
+    if (battVal !== null) {
+      battPct = Math.min(100, Math.max(0, ((battVal - 3.3) / (4.2 - 3.3)) * 100));
+      if (battPct < 20) battColor = "#f87171";
+      else if (battPct < 40) battColor = "#fbbf24";
+    }
+
+    const locationBadge = coords
+      ? `<div class="node-location-badge">📍 ${coords[0].toFixed(5)}, ${coords[1].toFixed(5)}</div>`
+      : `<div class="node-location-badge no-location">⚠ No location set</div>`;
+
+    const statusHtml  = isLive
+      ? `<div class="node-status live"><div class="status-dot live"></div>LIVE</div>`
+      : `<div class="node-status stale"><div class="status-dot stale"></div>⚠ NOT TRANSMITTING</div>`;
+    const staleBanner = (!isLive && hasData)
+      ? `<div class="stale-banner">⏱ Last transmission: ${lastSeenFull}<br>Viewing cached data — node may be out of rover range.</div>`
+      : "";
+
+    const card = document.createElement("div");
+    card.className = "node-card";
+    card.innerHTML = `
+      <div class="node-card-header"><div class="node-id">${nodeId}</div>${statusHtml}</div>
+      <div class="node-metrics">
+        <div class="metric"><div class="metric-label">Temperature</div><div class="metric-value">${tempVal}<span class="metric-unit">${temp ? '°F' : ''}</span></div>${tempStats}</div>
+        <div class="metric"><div class="metric-label">Humidity</div><div class="metric-value">${humVal}<span class="metric-unit">${hum ? '%' : ''}</span></div>${humStats}</div>
+        <div class="metric"><div class="metric-label">Insects</div><div class="metric-value insects">${added - removed}</div></div>
+        <div class="metric"><div class="metric-label">Battery</div><div class="metric-value">${battVal !== null ? battVal.toFixed(2) : '—'}<span class="metric-unit">${battVal !== null ? 'V' : '(not wired)'}</span></div><div class="metric-sub">RSSI: ${rssi !== null ? rssi + ' dBm' : '—'}</div></div>
+      </div>
+      ${staleBanner}${locationBadge}
+      <div class="battery-bar"><div class="battery-fill" style="width:${battPct}%;background:${battColor}"></div></div>
+      <a class="view-detail-btn" href="detail.html?node=${encodeURIComponent(nodeId)}">View detail →</a>
+    `;
+    document.getElementById("nodes-list").appendChild(card);
+    if (isLive) document.getElementById("last-updated").textContent = lastSeenStr;
+    return { nodeId, coords, insectVal: added - removed, tempVal, humVal };
+  }
+
+  // ── LEAFLET MAP ──────────────────────────────────────
+  const map = L.map("map-view", { zoomControl: true }).setView(DEFAULT_CENTER, 15);
+
+  // Move heatmap canvas into Leaflet's overlayPane so pixel↔latlng conversion is correct
+  const heatCanvas = document.getElementById("heatmap-canvas");
+  map.getPanes().overlayPane.appendChild(heatCanvas);
+
+  // Reset the canvas position/transform to align with the map pane origin on every render
+  function resetCanvasTransform() {
+    const topLeft    = map.containerPointToLayerPoint([0, 0]);
+    const mapSize    = map.getSize();
+    heatCanvas.style.transform = `translate(${topLeft.x}px,${topLeft.y}px)`;
+    heatCanvas.style.width     = mapSize.x + "px";
+    heatCanvas.style.height    = mapSize.y + "px";
+    heatCanvas.width           = mapSize.x;
+    heatCanvas.height          = mapSize.y;
+  }
+
+  L.tileLayer(
+    `https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=${ARCGIS_KEY}`,
+    { attribution: 'Tiles © <a href="https://www.esri.com/">Esri</a>', maxZoom: 20 }
+  ).addTo(map);
+
+  function trapIcon(label) {
+    return L.divIcon({
+      className: "",
+      html: `<div style="width:28px;height:28px;border-radius:50%;background:#dc2626;border:2px solid #fff;box-shadow:0 0 0 1px #dc2626,0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:11px;font-weight:bold;color:#fff">${label}</div>`,
+      iconSize: [28,28], iconAnchor: [14,14], popupAnchor: [0,-16]
+    });
+  }
+
+  function roverIcon(isCurrent) {
+    const s = isCurrent ? 20 : 13, op = isCurrent ? 1 : 0.5;
+    return L.divIcon({
+      className: "",
+      html: `<div style="width:${s}px;height:${s}px;background:#1d4ed8;opacity:${op};transform:rotate(45deg);border:2px solid #fff;box-shadow:0 0 0 1px #1d4ed8"></div>`,
+      iconSize: [s,s], iconAnchor: [s/2,s/2], popupAnchor: [0,-s]
+    });
+  }
+
+  Promise.all([loadNodes(), fetchRoverHistory()]).then(([nodes, roverHistory]) => {
+    const placed = nodes.filter(n => n.coords);
+
+    placed.forEach((node, i) => {
+      const numMatch = node.nodeId.match(/(\d+)$/);
+      const label    = numMatch ? String(parseInt(numMatch[1], 10)) : String(i + 1);
+      L.marker(node.coords, { icon: trapIcon(label) }).addTo(map)
+        .bindPopup(`<b style="font-family:monospace">${node.nodeId}</b><br>Insects: ${node.insectVal}<br>Temp: ${node.tempVal} °F<br>Humidity: ${node.humVal}%<br><a href="detail.html?node=${encodeURIComponent(node.nodeId)}" style="color:#dc2626">View detail →</a>`);
+    });
+
+    if (placed.length === 1) {
+      map.setView(placed[0].coords, 17);
+    } else if (placed.length > 1) {
+      map.fitBounds(L.latLngBounds(placed.map(n => n.coords)), { padding: [60, 60] });
+    }
+
+    if (placed.length > 0) {
+      const avgLat = placed.reduce((s,n) => s + n.coords[0], 0) / placed.length;
+      const avgLng = placed.reduce((s,n) => s + n.coords[1], 0) / placed.length;
+      fetchNearestCity(avgLat, avgLng).then(city => {
+        const el = document.getElementById("map-overlay-city");
+        if (el) el.textContent = city || "Central California";
+      });
+    }
+
+    if (roverHistory.length === 0) {
+      document.getElementById("rover-header-status").textContent = "Rover: no data yet";
+      ["rover-last-pos","rover-last-seen","rover-stop-count","rover-first-seen"].forEach(id => document.getElementById(id).textContent = id === "rover-stop-count" ? "0" : "—");
+      return;
+    }
+
+    const lr    = roverHistory[roverHistory.length - 1];
+    const fr    = roverHistory[0];
+    const llat  = parseFloat(lr.latitude), llng = parseFloat(lr.longitude);
+    const ltime = new Date(lr.timestamp).toLocaleString();
+    const ftime = new Date(fr.timestamp).toLocaleString();
+    document.getElementById("rover-header-status").textContent = `Rover: ${llat.toFixed(4)}, ${llng.toFixed(4)}`;
+    document.getElementById("rover-last-pos").textContent      = `${llat.toFixed(4)}, ${llng.toFixed(4)}`;
+    document.getElementById("rover-last-seen").textContent     = ltime;
+    document.getElementById("rover-stop-count").textContent    = roverHistory.length;
+    document.getElementById("rover-first-seen").textContent    = ftime;
+
+    // Limit map display to the 10 most recent pings only
+    const recentHistory = roverHistory.slice(-10);
+
+    if (recentHistory.length > 1) {
+      const pathCoords = recentHistory.map(r => [parseFloat(r.latitude), parseFloat(r.longitude)]);
+
+      // Draw the dashed polyline
+      L.polyline(pathCoords, { color: "#1d4ed8", weight: 2, dashArray: "6,4", opacity: 0.7 }).addTo(map);
+
+      // Add a directional arrowhead at the midpoint of each segment
+      for (let i = 0; i < pathCoords.length - 1; i++) {
+        const from = pathCoords[i];
+        const to   = pathCoords[i + 1];
+        const midLat = (from[0] + to[0]) / 2;
+        const midLng = (from[1] + to[1]) / 2;
+        const angleDeg = Math.atan2(to[1] - from[1], to[0] - from[0]) * (180 / Math.PI);
+
+        const arrowIcon = L.divIcon({
+          className: "",
+          html: `<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:11px solid #1d4ed8;opacity:0.85;transform:rotate(${angleDeg}deg);transform-origin:center center;"></div>`,
+          iconSize: [10, 11], iconAnchor: [5, 5.5]
+        });
+
+        L.marker([midLat, midLng], { icon: arrowIcon, interactive: false }).addTo(map);
+      }
+    }
+
+    recentHistory.forEach((stop, idx) => {
+      const isLatest = idx === recentHistory.length - 1;
+      const lat = parseFloat(stop.latitude), lng = parseFloat(stop.longitude);
+      L.circle([lat, lng], { radius: WIFI_RADIUS_METERS, color: "#1d4ed8", weight: 1, dashArray: isLatest ? null : "4,3", fillColor: "#1d4ed8", fillOpacity: isLatest ? 0.12 : 0.04, opacity: isLatest ? 0.5 : 0.2 }).addTo(map);
+      L.marker([lat, lng], { icon: roverIcon(isLatest) }).addTo(map)
+        .bindPopup(`<b style="font-family:monospace">${isLatest ? "Rover — Current" : "Rover — Past"}</b><br>Time: ${new Date(stop.timestamp).toLocaleString()}<br>Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}`);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════
+  // HEATMAP ENGINE
+  // ══════════════════════════════════════════════════════
+
+  let heatmapActive  = null;   // 'temp' | 'humidity' | null
+  let heatNodeData   = [];     // [{lat, lng, temp, humidity}, ...]
+  let boundaryLatLngs = [];    // [[lat,lng], ...] from saved orchard boundary
+
+  // ── Fetch orchard boundary ────────────────────────────
+  async function fetchOrchardBoundary() {
+    try {
+      const res  = await fetch(`${SUPABASE_URL}/rest/v1/orchard_boundaries?select=polygon_points&order=id.asc&limit=1`, {
+        headers: await authHeaders()
+      });
+      const rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) return [];
+      const pts = rows[0].polygon_points;
+      if (!Array.isArray(pts) || pts.length < 3) return [];
+      // Handle both {lat,lng} and legacy {latitude,longitude} formats
+      return pts.map(p => [p.lat ?? p.latitude, p.lng ?? p.longitude]);
+    } catch { return []; }
+  }
+
+  // ── Fetch latest sensor reading per node ─────────────
+  async function fetchHeatmapNodeData() {
+    const locationMap = await (async () => {
+      const rows = await sbGet("node_locations?select=node_id,latitude,longitude");
+      const m = {};
+      if (Array.isArray(rows)) rows.forEach(r => { m[r.node_id] = [parseFloat(r.latitude), parseFloat(r.longitude)]; });
+      return m;
+    })();
+
+    const nodeIds = Object.keys(locationMap);
+    const result  = [];
+
+    for (const nodeId of nodeIds) {
+      const coords = locationMap[nodeId];
+      const rows   = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=upload_timestamp.desc&limit=20`);
+      if (!Array.isArray(rows)) continue;
+      const tempRow = rows.find(r => r.event_type === "temp");
+      const humRow  = rows.find(r => r.event_type === "humidity");
+      result.push({
+        lat:      coords[0],
+        lng:      coords[1],
+        temp:     tempRow ? ((parseFloat(tempRow.event_value) * 9/5) + 32) : null,
+        humidity: humRow  ? parseFloat(humRow.event_value) : null
+      });
+    }
+    return result;
+  }
+
+  // ── Point-in-polygon (ray casting) ───────────────────
+  function pointInPolygon(lat, lng, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i][1], yi = poly[i][0];
+      const xj = poly[j][1], yj = poly[j][0];
+      if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
+  // ── IDW interpolation ────────────────────────────────
+  function idw(queryLat, queryLng, nodes, field, power = 2) {
+    let weightSum = 0, valueSum = 0;
+    for (const n of nodes) {
+      if (n[field] === null) continue;
+      const dLat = queryLat - n.lat;
+      const dLng = queryLng - n.lng;
+      const dist  = Math.sqrt(dLat * dLat + dLng * dLng);
+      if (dist < 1e-10) return n[field]; // exactly on a node
+      const w = 1 / Math.pow(dist, power);
+      weightSum += w;
+      valueSum  += w * n[field];
+    }
+    return weightSum === 0 ? null : valueSum / weightSum;
+  }
+
+  // ── Value → blue-to-red RGBA ─────────────────────────
+  function valueToColor(t) {
+    // t in [0,1]: 0=cool blue, 0.5=green/yellow, 1=hot red
+    // Uses a 4-stop gradient: blue → cyan → yellow → red
+    const stops = [
+      [0,    [0,   0,   220]],
+      [0.33, [0,   200, 220]],
+      [0.66, [250, 220, 0  ]],
+      [1.0,  [220, 20,  20 ]]
+    ];
+    for (let i = 1; i < stops.length; i++) {
+      if (t <= stops[i][0]) {
+        const s = (t - stops[i-1][0]) / (stops[i][0] - stops[i-1][0]);
+        const a = stops[i-1][1], b = stops[i][1];
+        return [
+          Math.round(a[0] + s * (b[0] - a[0])),
+          Math.round(a[1] + s * (b[1] - a[1])),
+          Math.round(a[2] + s * (b[2] - a[2])),
+          175   // alpha ~69% opacity
+        ];
+      }
+    }
+    return [220, 20, 20, 175];
+  }
+
+  // ── Draw legend bar canvas ────────────────────────────
+  function drawLegendBar(minVal, maxVal, field) {
+    const canvas = document.getElementById("heatmap-legend-bar");
+    const ctx    = canvas.getContext("2d");
+    const h      = canvas.height;
+    for (let y = 0; y < h; y++) {
+      const t     = 1 - y / (h - 1);  // top=max, bottom=min
+      const [r,g,b] = valueToColor(t);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(0, y, 16, 1);
+    }
+    const mid = (minVal + maxVal) / 2;
+    const unit = field === "temp" ? "°F" : "%";
+    document.getElementById("heatmap-legend-max").textContent = maxVal.toFixed(1) + unit;
+    document.getElementById("heatmap-legend-mid").textContent = mid.toFixed(1) + unit;
+    document.getElementById("heatmap-legend-min").textContent = minVal.toFixed(1) + unit;
+    document.getElementById("heatmap-legend-title").textContent = field === "temp" ? "Temperature" : "Humidity";
+  }
+
+  // ── Main render function ──────────────────────────────
+  function renderHeatmap(field) {
+    const canvas     = document.getElementById("heatmap-canvas");
+
+    // Align canvas to current map pane position
+    resetCanvasTransform();
+    const W = canvas.width;
+    const H = canvas.height;
+    if (W === 0 || H === 0) return;
+
+    canvas.style.display = "block";
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, W, H);
+
+    const validNodes = heatNodeData.filter(n => n[field] !== null);
+    if (validNodes.length === 0) return;
+
+    const values = validNodes.map(n => n[field]);
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    const range  = maxVal - minVal || 1;
+
+    // Get geographic bounds of the current viewport
+    const bounds  = map.getBounds();
+    const neLat   = bounds.getNorth();
+    const swLat   = bounds.getSouth();
+    const wLng    = bounds.getWest();
+    const eLng    = bounds.getEast();
+
+    // Sample resolution — number of geographic grid steps
+    const STEPS   = 120;
+    const latStep = (neLat - swLat) / STEPS;
+    const lngStep = (eLng  - wLng)  / STEPS;
+
+    // Calculate pixel size of each geographic cell
+    const cellPt0 = map.latLngToContainerPoint([neLat, wLng]);
+    const cellPt1 = map.latLngToContainerPoint([neLat - latStep, wLng + lngStep]);
+    const cellW   = Math.ceil(Math.abs(cellPt1.x - cellPt0.x)) + 1;
+    const cellH   = Math.ceil(Math.abs(cellPt1.y - cellPt0.y)) + 1;
+
+    for (let row = 0; row <= STEPS; row++) {
+      for (let col = 0; col <= STEPS; col++) {
+        const lat = neLat - row * latStep;
+        const lng = wLng  + col * lngStep;
+
+        // Skip if outside boundary polygon
+        if (boundaryLatLngs.length >= 3 && !pointInPolygon(lat, lng, boundaryLatLngs)) continue;
+
+        const val = idw(lat, lng, validNodes, field);
+        if (val === null) continue;
+
+        const t = (val - minVal) / range;
+        const [r, g, b, a] = valueToColor(t);
+
+        // Convert geographic point to pixel
+        const pt = map.latLngToContainerPoint([lat, lng]);
+        ctx.fillStyle = `rgba(${r},${g},${b},${a / 255})`;
+        ctx.fillRect(pt.x, pt.y, cellW, cellH);
+      }
+    }
+
+    drawLegendBar(minVal, maxVal, field);
+    document.getElementById("heatmap-legend").classList.add("visible");
+  }
+
+  function clearHeatmap() {
+    const canvas = document.getElementById("heatmap-canvas");
+    canvas.style.display = "none";
+    canvas.style.transform = "";
+    canvas.width  = 0;
+    canvas.height = 0;
+    document.getElementById("heatmap-legend").classList.remove("visible");
+  }
+
+  // Re-render on map move/zoom so the overlay stays aligned
+  // Hide canvas during drag (pane transform makes it drift), re-render on release
+  map.on("movestart", function() {
+    if (heatmapActive) {
+      const canvas = document.getElementById("heatmap-canvas");
+      canvas.style.display = "none";
+    }
+  });
+
+  map.on("moveend zoomend", function() {
+    if (heatmapActive) renderHeatmap(heatmapActive);
+  });
+
+  async function toggleHeatmap(field) {
+    // If already active, turn it off
+    if (heatmapActive === field) {
+      heatmapActive = null;
+      clearHeatmap();
+      document.querySelectorAll(".heatmap-btn").forEach(b => b.classList.remove("active"));
+      return;
+    }
+
+    // Switch active state
+    heatmapActive = field;
+    document.querySelectorAll(".heatmap-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById(field === "temp" ? "btn-heat-temp" : "btn-heat-hum").classList.add("active");
+
+    // Load data if not already loaded
+    if (heatNodeData.length === 0) {
+      heatNodeData      = await fetchHeatmapNodeData();
+      boundaryLatLngs   = await fetchOrchardBoundary();
+    }
+
+    const canvas = document.getElementById("heatmap-canvas");
+    canvas.style.display = "block";
+    renderHeatmap(field);
+  }
+</script>
+</body>
+</html>

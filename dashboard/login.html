@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign in — VerdanTech Dashboard</title>
+
+  <script>
+    // Invite and password-reset emails land on the Site URL (this page) with tokens
+    // or an error in the URL hash. Hand those off to set-password.html.
+    if (/[#&](type=(invite|recovery)|error_code=)/.test(location.hash)) {
+      location.replace("set-password.html" + location.hash);
+    }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/auth-pages.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
+  <script src="js/auth.js"></script>
+</head>
+<body>
+
+<main class="auth-wrap">
+  <a class="wordmark" href="../index.html" aria-label="VerdanTech Solutions website">
+    <span class="wordmark-verdan">Verdan</span><span class="wordmark-tech">Tech</span>
+    <span class="wordmark-sub">SmartTrap Dashboard</span>
+  </a>
+
+  <div class="auth-card">
+    <h1 id="card-title">Sign in</h1>
+    <p class="auth-sub" id="card-sub">View live data from your SmartTrap network.</p>
+
+    <form id="signin-form">
+      <label>Email <input type="email" id="email" autocomplete="email" required></label>
+      <label>Password <input type="password" id="password" autocomplete="current-password" required></label>
+      <button class="primary-btn" id="signin-btn" type="submit">Sign in</button>
+    </form>
+
+    <form id="reset-form" hidden>
+      <label>Email <input type="email" id="reset-email" autocomplete="email" required></label>
+      <button class="primary-btn" id="reset-btn" type="submit">Send reset link</button>
+    </form>
+
+    <div class="auth-status" id="status" role="status" aria-live="polite"></div>
+    <button class="link-btn" id="mode-toggle" type="button">Forgot your password?</button>
+  </div>
+
+  <p class="auth-foot">Accounts are invite-only. Contact VerdanTech for access.</p>
+  <a class="auth-back" href="../index.html">← Back to the VerdanTech website</a>
+</main>
+
+<script>
+  // Only return to another dashboard page (e.g. "detail.html?node=trap_node_04"), never an outside URL.
+  const nextParam = new URLSearchParams(location.search).get("next") || "";
+  const next = /^[\w-]+\.html(\?[^#]*)?$/.test(nextParam) ? nextParam : "index.html";
+
+  const statusEl = document.getElementById("status");
+  function setStatus(text, type = "") {
+    statusEl.textContent = text;
+    statusEl.className = `auth-status ${type}`;
+  }
+
+  // Already signed in? Skip the form.
+  sb.auth.getSession().then(({ data: { session } }) => { if (session) location.replace(next); });
+
+  document.getElementById("signin-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const btn = document.getElementById("signin-btn");
+    btn.disabled = true;
+    btn.textContent = "Signing in…";
+    setStatus("");
+
+    const { error } = await sb.auth.signInWithPassword({
+      email:    document.getElementById("email").value.trim(),
+      password: document.getElementById("password").value,
+    });
+
+    if (error) {
+      setStatus(error.message === "Invalid login credentials" ? "Incorrect email or password." : error.message, "error");
+      btn.disabled = false;
+      btn.textContent = "Sign in";
+      return;
+    }
+    location.replace(next);
+  });
+
+  document.getElementById("reset-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const btn = document.getElementById("reset-btn");
+    btn.disabled = true;
+    btn.textContent = "Sending…";
+    setStatus("");
+
+    const { error } = await sb.auth.resetPasswordForEmail(
+      document.getElementById("reset-email").value.trim(),
+      { redirectTo: new URL("set-password.html", location.href).href }
+    );
+
+    btn.disabled = false;
+    btn.textContent = "Send reset link";
+    if (error) setStatus(error.message, "error");
+    else setStatus("If an account exists for that email, a reset link is on its way.", "success");
+  });
+
+  let resetMode = false;
+  document.getElementById("mode-toggle").addEventListener("click", () => {
+    resetMode = !resetMode;
+    document.getElementById("signin-form").hidden = resetMode;
+    document.getElementById("reset-form").hidden  = !resetMode;
+    document.getElementById("card-title").textContent  = resetMode ? "Reset your password" : "Sign in";
+    document.getElementById("card-sub").textContent    = resetMode
+      ? "Enter your email and we'll send you a link to choose a new password."
+      : "View live data from your SmartTrap network.";
+    document.getElementById("mode-toggle").textContent = resetMode ? "Back to sign in" : "Forgot your password?";
+    setStatus("");
+  });
+</script>
+</body>
+</html>

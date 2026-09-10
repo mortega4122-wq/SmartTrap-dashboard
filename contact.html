@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Contact Us — VerdanTech Solutions</title>
+  <meta name="description" content="Request a field demo of the SmartTrap pest monitoring system."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+
+<div data-site-header></div>
+<script src="assets/js/site.js"></script>
+
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow">Contact us</p>
+      <h1>Request a field demo</h1>
+      <p class="lead">See SmartTrap at work in your own orchard. Tell us about your operation and we'll be in touch to schedule a demo.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container contact-layout">
+      <div class="card">
+        <form id="demo-form">
+          <div class="form-grid">
+            <div class="field">
+              <label for="full_name">Full name <span class="required" aria-hidden="true">*</span></label>
+              <input id="full_name" name="full_name" type="text" autocomplete="name" maxlength="200" required>
+            </div>
+            <div class="field">
+              <label for="email">Email <span class="required" aria-hidden="true">*</span></label>
+              <input id="email" name="email" type="email" autocomplete="email" maxlength="320" required>
+            </div>
+            <div class="field">
+              <label for="phone">Phone</label>
+              <input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="50">
+            </div>
+            <div class="field">
+              <label for="organization">Farm or company</label>
+              <input id="organization" name="organization" type="text" autocomplete="organization" maxlength="200">
+            </div>
+            <div class="field">
+              <label for="role">Your role</label>
+              <select id="role" name="role">
+                <option value="">Select…</option>
+                <option>Grower / owner</option>
+                <option>Farm or orchard manager</option>
+                <option>Pest control adviser (PCA)</option>
+                <option>Researcher / extension</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="crop">Main crop</label>
+              <select id="crop" name="crop">
+                <option value="">Select…</option>
+                <option>Almonds</option>
+                <option>Pistachios</option>
+                <option>Walnuts</option>
+                <option>Stone fruit</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field field-full">
+              <label for="location">Orchard location <span class="required" aria-hidden="true">*</span></label>
+              <input id="location" name="location" type="text" placeholder="City, county, state" maxlength="200" required>
+            </div>
+            <div class="field">
+              <label for="acreage">Orchard size</label>
+              <select id="acreage" name="acreage">
+                <option value="">Select…</option>
+                <option>Under 50 acres</option>
+                <option>50–200 acres</option>
+                <option>200–1,000 acres</option>
+                <option>Over 1,000 acres</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="timeframe">When would you like a demo?</label>
+              <select id="timeframe" name="timeframe">
+                <option value="">Select…</option>
+                <option>As soon as possible</option>
+                <option>Within a month</option>
+                <option>In 1–3 months</option>
+                <option>Just exploring</option>
+              </select>
+            </div>
+            <div class="field field-full">
+              <label for="message">Anything else we should know?</label>
+              <textarea id="message" name="message" maxlength="5000" placeholder="Pests you're watching for, current monitoring methods, questions about SmartTrap…"></textarea>
+            </div>
+            <div class="hp-field" aria-hidden="true">
+              <label for="website">Website</label>
+              <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+            </div>
+          </div>
+
+          <p class="form-note">Fields marked <span class="required">*</span> are required. We'll use your information only to respond to this request.</p>
+          <button class="btn btn-cta btn-lg" id="demo-submit" type="submit">Request a demo</button>
+          <div class="form-status" id="form-status" role="status" aria-live="polite"></div>
+        </form>
+
+        <div class="form-success" id="form-success" tabindex="-1" hidden>
+          <h2>Thanks! Your request is in.</h2>
+          <p>Someone from VerdanTech will reach out soon to schedule your field demo.</p>
+          <a class="btn btn-secondary" href="index.html">Back to home</a>
+        </div>
+      </div>
+
+      <aside class="contact-aside">
+        <h2>What to expect</h2>
+        <ol class="flow">
+          <li><h3>We review your request</h3><p>Placeholder: typical response time.</p></li>
+          <li><h3>A quick call</h3><p>We learn about your orchard, your crops, and the pests you're watching for.</p></li>
+          <li><h3>An on-site demo</h3><p>We set up SmartTrap in your orchard and walk you through the dashboard.</p></li>
+        </ol>
+        <p class="placeholder-note">Placeholder: phone number, email address, and service area.</p>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<div data-site-footer></div>
+
+<script src="assets/js/contact.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+/* Styles for login.html and set-password.html. Same palette as the dashboard. */
+:root {
+  --bg: #f5f6f4; --surface: #ffffff; --border: #e2e5e2;
+  --accent: #1a7a3c; --accent-hover: #14612f; --leaf: #5a9e3f;
+  --danger: #dc2626; --text: #1a1f1a; --muted: #6b7a6c;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0; min-height: 100vh; padding: 32px 16px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg); color: var(--text);
+  font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.auth-wrap { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+
+.wordmark { text-decoration: none; text-align: center; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.wordmark-verdan { color: var(--text); }
+.wordmark-tech   { color: var(--leaf); }
+.wordmark-sub {
+  display: block; margin-top: 6px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500;
+  letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted);
+}
+
+.auth-card {
+  width: 100%; padding: 32px 28px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 8px 24px rgba(0,0,0,0.05);
+}
+.auth-card h1 { margin: 0 0 6px; font-size: 1.35rem; }
+.auth-sub { margin: 0 0 24px; color: var(--muted); font-size: 0.95rem; line-height: 1.5; }
+
+form { display: flex; flex-direction: column; gap: 16px; }
+label {
+  display: flex; flex-direction: column; gap: 6px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+}
+input {
+  padding: 11px 12px; border: 1px solid var(--border); border-radius: 6px;
+  font-family: 'DM Sans', system-ui, sans-serif; font-size: 1rem; color: var(--text);
+}
+input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(26,122,60,0.15); }
+
+.primary-btn {
+  margin-top: 4px; padding: 12px; border: 0; border-radius: 6px;
+  background: var(--accent); color: #fff;
+  font-family: 'DM Sans', system-ui, sans-serif; font-size: 1rem; font-weight: 700; cursor: pointer;
+}
+.primary-btn:hover    { background: var(--accent-hover); }
+.primary-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+.auth-status { min-height: 20px; margin-top: 14px; font-size: 0.9rem; line-height: 1.5; }
+.auth-status.error   { color: var(--danger); }
+.auth-status.success { color: var(--accent); }
+
+.link-btn {
+  margin-top: 8px; padding: 0; border: 0; background: none;
+  color: var(--accent); font: inherit; font-size: 0.9rem; text-decoration: underline; cursor: pointer;
+}
+
+.auth-foot { margin: 0; color: var(--muted); font-size: 0.85rem; text-align: center; }
+.auth-back { color: var(--muted); font-size: 0.85rem; }
+.auth-back:hover { color: var(--accent); }

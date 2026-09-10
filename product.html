@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Our Product — VerdanTech Solutions</title>
+  <meta name="description" content="How the SmartTrap monitoring system detects pests and reports orchard conditions."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+
+<div data-site-header></div>
+<script src="assets/js/site.js"></script>
+
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow">Our product</p>
+      <h1>The SmartTrap monitoring system</h1>
+      <p class="lead">A field trap, a gateway, and a dashboard that work together to count pests and track orchard conditions automatically.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container split">
+      <div>
+        <h2 class="section-title">How it works</h2>
+        <ol class="flow">
+          <li>
+            <h3>An insect enters the trap</h3>
+            <p>Target insects are drawn into the trap and funnel down into the detection chamber.</p>
+          </li>
+          <li>
+            <h3>Infrared beams detect it</h3>
+            <p>Two layers of infrared beams line the chamber. An insect breaking a beam is counted, and the second layer keeps the same insect from being counted twice.</p>
+          </li>
+          <li>
+            <h3>The trap logs the event</h3>
+            <p>Each detection is saved with a timestamp, along with temperature, humidity, and battery readings. An onboard memory card backs everything up.</p>
+          </li>
+          <li>
+            <h3>A gateway relays the data</h3>
+            <p>A shared gateway collects data from nearby traps over short-range Wi-Fi and sends it to the cloud over cellular, so the orchard doesn't need internet coverage.</p>
+          </li>
+          <li>
+            <h3>You see it on the dashboard</h3>
+            <p>Trap locations, counts, and conditions appear on a map, with history charts and temperature and humidity heatmaps.</p>
+          </li>
+        </ol>
+      </div>
+      <div class="placeholder-media" aria-hidden="true">Diagram placeholder: trap → gateway → cloud → dashboard</div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="container">
+      <h2 class="section-title">What's in the system</h2>
+      <div class="grid grid-3">
+        <article class="card">
+          <div class="placeholder-media" aria-hidden="true">Photo: SmartTrap field node</div>
+          <p class="card-label">In the orchard</p>
+          <h3>SmartTrap field node</h3>
+          <ul>
+            <li>Dual-layer infrared insect detection</li>
+            <li>Temperature and humidity sensor</li>
+            <li>Onboard backup storage</li>
+            <li>Solar-charged battery power</li>
+          </ul>
+        </article>
+        <article class="card">
+          <div class="placeholder-media" aria-hidden="true">Photo: field gateway</div>
+          <p class="card-label">At the edge</p>
+          <h3>Field gateway</h3>
+          <ul>
+            <li>Collects data from nearby traps</li>
+            <li>Cellular connection to the cloud</li>
+            <li>Holds data safely if the connection drops</li>
+          </ul>
+        </article>
+        <article class="card">
+          <div class="placeholder-media" aria-hidden="true">Screenshot: dashboard map</div>
+          <p class="card-label">On any device</p>
+          <h3>Web dashboard</h3>
+          <ul>
+            <li>Satellite map of every trap</li>
+            <li>History charts for each trap</li>
+            <li>Temperature and humidity heatmaps</li>
+            <li>Register new traps from your phone</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <h2 class="section-title">How SmartTrap compares</h2>
+      <p class="section-intro">Many automated traps use cameras and image recognition. SmartTrap takes a simpler approach built around reliable counting.</p>
+      <div class="table-wrap">
+        <table class="compare">
+          <thead>
+            <tr>
+              <th scope="col"><span class="sr-only">Feature</span></th>
+              <th scope="col" class="is-ours">SmartTrap</th>
+              <th scope="col">Camera-based traps</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Detection method</th><td>Infrared beam break</td><td>Camera photos and image recognition</td></tr>
+            <tr><th scope="row">Data sent per detection</th><td>A small text record</td><td>Photos</td></tr>
+            <tr><th scope="row">Power needs</th><td class="tbd">TBD</td><td class="tbd">TBD</td></tr>
+            <tr><th scope="row">Hardware cost per trap</th><td class="tbd">TBD</td><td class="tbd">TBD</td></tr>
+            <tr><th scope="row">Ongoing data costs</th><td class="tbd">TBD</td><td class="tbd">TBD</td></tr>
+            <tr><th scope="row">Species identification</th><td class="tbd">TBD</td><td class="tbd">TBD</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-caption">Detailed comparison coming soon. TBD values will be filled in after field testing.</p>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="container">
+      <h2 class="section-title">How we keep costs low</h2>
+      <ul class="checklist">
+        <li><strong>No cameras or image processing</strong><span>Counting with an infrared beam needs far less power, storage, and bandwidth than photos do.</span></li>
+        <li><strong>One cellular connection for many traps</strong><span>Traps use low-power Wi-Fi to reach a shared gateway, so each trap doesn't need its own cellular plan.</span></li>
+        <li><strong>Location set once at install</strong><span>A trap's position is saved when it's placed, so no GPS module drains its battery.</span></li>
+        <li><strong>Backups at every step</strong><span>Traps and the gateway both keep local copies, so a dropped connection doesn't mean lost data.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container narrow">
+      <h2>Technical specifications</h2>
+      <p class="placeholder-note">Coming soon: dimensions, battery life, detection performance, operating temperature range, and connectivity details.</p>
+      <p><a class="text-link" href="docs.html">Find guides and downloads in Documentation →</a></p>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="container cta-inner">
+      <div>
+        <h2>See your orchard's data</h2>
+        <p>Growers with SmartTrap installed can sign in to the dashboard.</p>
+      </div>
+      <a class="btn btn-primary btn-lg" href="dashboard/index.html">Go to Dashboard →</a>
+    </div>
+  </section>
+</main>
+
+<div data-site-footer></div>
+
+</body>
+</html>
