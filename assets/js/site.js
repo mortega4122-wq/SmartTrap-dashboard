@@ -1,7 +1,9 @@
 // Shared header and footer for the website pages.
 // Each page has <div data-site-header></div> followed by this script, and
-// <div data-site-footer></div> near the end of <body>. Links are relative
-// because GitHub Pages serves the site under /SmartTrap-dashboard/.
+// <div data-site-footer></div> near the end of <body>. Pages that open with a
+// full-bleed photo put class="has-dark-hero" on <body>, which keeps the header
+// transparent until the visitor scrolls. Links are relative because GitHub
+// Pages serves the site under /SmartTrap-dashboard/.
 (function () {
   const NAV = [
     { href: "about.html",        label: "About Us" },
@@ -14,16 +16,18 @@
   const current = location.pathname.split("/").pop() || "index.html";
   const currentAttr = href => (href === current ? ' aria-current="page"' : "");
 
-  const navLinks = NAV.map(item => `<li><a href="${item.href}"${currentAttr(item.href)}>${item.label}</a></li>`).join("");
+  const wordmark = `<a class="wordmark" href="index.html" aria-label="VerdanTech Solutions home"><span class="wordmark-verdan">Verdan</span><span class="wordmark-tech">Tech</span></a>`;
 
-  const wordmark = `
-    <a class="wordmark" href="index.html" aria-label="VerdanTech Solutions home">
-      <span class="wordmark-verdan">Verdan</span><span class="wordmark-tech">Tech</span><span class="wordmark-sub">Solutions</span>
-    </a>`;
+  // Photos not yet added to assets/img/ fail to load. Remove them so the .media
+  // block shows its placeholder label instead of a broken-image icon.
+  document.addEventListener("error", e => {
+    if (e.target instanceof HTMLImageElement && e.target.closest(".media")) e.target.remove();
+  }, true);
 
-  const header = document.querySelector("[data-site-header]");
-  if (header) {
-    header.outerHTML = `
+  const headerSlot = document.querySelector("[data-site-header]");
+  if (headerSlot) {
+    const navLinks = NAV.map(item => `<li><a href="${item.href}"${currentAttr(item.href)}>${item.label}</a></li>`).join("");
+    headerSlot.outerHTML = `
       <header class="site-header">
         <div class="container header-inner">
           ${wordmark}
@@ -33,38 +37,67 @@
           <nav class="site-nav" id="site-nav" aria-label="Main">
             <ul>${navLinks}</ul>
             <div class="nav-actions">
-              <a class="btn btn-cta" href="${CONTACT_URL}"${currentAttr(CONTACT_URL)}>Contact Us</a>
-              <a class="btn btn-primary" href="${DASHBOARD_URL}">Dashboard Login →</a>
+              <a class="btn btn-cta" href="${CONTACT_URL}"${currentAttr(CONTACT_URL)}>Contact Us <span aria-hidden="true">↗</span></a>
+              <a class="btn btn-primary" href="${DASHBOARD_URL}">Dashboard Login <span aria-hidden="true">↗</span></a>
             </div>
           </nav>
         </div>
       </header>`;
 
-    const toggle = document.querySelector(".nav-toggle");
+    const header = document.querySelector(".site-header");
+    const toggle = header.querySelector(".nav-toggle");
+    const nav    = header.querySelector(".site-nav");
+    const hasDarkHero = document.body.classList.contains("has-dark-hero");
+
+    const updateHeader = () => {
+      header.classList.toggle("is-solid", !hasDarkHero || window.scrollY > 24 || nav.classList.contains("open"));
+    };
+
     toggle.addEventListener("click", () => {
       const open = toggle.getAttribute("aria-expanded") !== "true";
       toggle.setAttribute("aria-expanded", String(open));
-      document.getElementById("site-nav").classList.toggle("open", open);
+      nav.classList.toggle("open", open);
+      updateHeader();
     });
+    window.addEventListener("scroll", updateHeader, { passive: true });
+    updateHeader();
   }
 
   function renderFooter() {
-    const footer = document.querySelector("[data-site-footer]");
-    if (!footer) return;
-    const footerLinks = NAV.map(item => `<li><a href="${item.href}">${item.label}</a></li>`).join("");
-    footer.outerHTML = `
+    const footerSlot = document.querySelector("[data-site-footer]");
+    if (!footerSlot) return;
+    const links = [...NAV, { href: CONTACT_URL, label: "Contact Us" }, { href: DASHBOARD_URL, label: "Dashboard Login" }]
+      .map(item => `<li><a href="${item.href}">${item.label}</a></li>`).join("");
+    footerSlot.outerHTML = `
       <footer class="site-footer">
-        <div class="container">
-          <div class="footer-inner">
-            <div>
+        <div class="footer-card">
+          <div class="footer-main">
+            <div class="footer-brand">
               ${wordmark}
-              <p class="footer-tagline">Smart, affordable pest monitoring for orchards.</p>
+              <p class="footer-tagline">Smart pest monitoring for orchards</p>
             </div>
-            <nav aria-label="Footer">
-              <ul class="footer-links">${footerLinks}<li><a href="${CONTACT_URL}">Contact Us</a></li><li><a href="${DASHBOARD_URL}">Dashboard Login</a></li></ul>
-            </nav>
+            <div class="footer-details">
+              <div>
+                <span class="footer-label">Contact</span>
+                <address>
+                  <span>Email: coming soon</span>
+                  <span>Phone: coming soon</span>
+                  <span>Address: coming soon</span>
+                </address>
+              </div>
+              <nav aria-label="Footer">
+                <span class="footer-label">Explore</span>
+                <ul class="footer-links">${links}</ul>
+              </nav>
+            </div>
           </div>
-          <div class="footer-bottom">© ${new Date().getFullYear()} VerdanTech Solutions. Contact details coming soon.</div>
+          <div class="media" data-label="assets/img/footer-orchard.jpg">
+            <img src="assets/img/footer-orchard.jpg" alt="" loading="lazy">
+          </div>
+          <div class="footer-bottom">
+            <span>© ${new Date().getFullYear()} VerdanTech Solutions. All rights reserved.</span>
+            <a href="${CONTACT_URL}">Request a field demo ↗</a>
+          </div>
         </div>
       </footer>`;
   }

@@ -1,8 +1,11 @@
-/* Styles for login.html and set-password.html. Same palette as the dashboard. */
+/* Styles for login.html and set-password.html. Matches the website:
+   square corners, hairlines, Inter Tight with mono labels. */
 :root {
-  --bg: #f5f6f4; --surface: #ffffff; --border: #e2e5e2;
-  --accent: #1a7a3c; --accent-hover: #14612f; --leaf: #5a9e3f;
-  --danger: #dc2626; --text: #1a1f1a; --muted: #6b7a6c;
+  --bg: #f4f6f1; --surface: #ffffff; --line: #dde2da;
+  --primary: #1a7a3c; --primary-hover: #14612f; --accent: #3f8f2a;
+  --danger: #b91c1c; --text: #141a15; --muted: #5b655c;
+  --font-sans: 'Inter Tight', 'Helvetica Now Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -11,57 +14,57 @@ body {
   margin: 0; min-height: 100vh; padding: 32px 16px;
   display: flex; align-items: center; justify-content: center;
   background: var(--bg); color: var(--text);
-  font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: var(--font-sans); letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
 }
 
-.auth-wrap { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.auth-wrap { width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
 
-.wordmark { text-decoration: none; text-align: center; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.wordmark { text-decoration: none; text-align: center; font-size: 1.9rem; font-weight: 600; letter-spacing: -0.035em; line-height: 1; }
 .wordmark-verdan { color: var(--text); }
-.wordmark-tech   { color: var(--leaf); }
+.wordmark-tech   { color: var(--accent); }
 .wordmark-sub {
-  display: block; margin-top: 6px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500;
-  letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted);
+  display: block; margin-top: 10px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
 }
 
-.auth-card {
-  width: 100%; padding: 32px 28px;
-  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 8px 24px rgba(0,0,0,0.05);
-}
-.auth-card h1 { margin: 0 0 6px; font-size: 1.35rem; }
-.auth-sub { margin: 0 0 24px; color: var(--muted); font-size: 0.95rem; line-height: 1.5; }
+.auth-card { width: 100%; padding: 36px 32px; background: var(--surface); border: 1px solid var(--line); }
+.auth-card h1 { margin: 0 0 8px; font-size: 1.75rem; font-weight: 400; letter-spacing: -0.03em; line-height: 1.1; }
+.auth-sub { margin: 0 0 28px; color: var(--muted); font-size: 0.95rem; line-height: 1.5; }
 
-form { display: flex; flex-direction: column; gap: 16px; }
+form { display: flex; flex-direction: column; gap: 18px; }
 label {
-  display: flex; flex-direction: column; gap: 6px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  display: flex; flex-direction: column; gap: 8px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
 }
 input {
-  padding: 11px 12px; border: 1px solid var(--border); border-radius: 6px;
-  font-family: 'DM Sans', system-ui, sans-serif; font-size: 1rem; color: var(--text);
+  padding: 13px 14px; border: 1px solid var(--line); border-radius: 0;
+  font-family: var(--font-sans); font-size: 1rem; letter-spacing: -0.01em; color: var(--text);
 }
-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(26,122,60,0.15); }
+input:focus { outline: none; border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
 
 .primary-btn {
-  margin-top: 4px; padding: 12px; border: 0; border-radius: 6px;
-  background: var(--accent); color: #fff;
-  font-family: 'DM Sans', system-ui, sans-serif; font-size: 1rem; font-weight: 700; cursor: pointer;
+  margin-top: 6px; padding: 15px; border: 0; border-radius: 0;
+  background: var(--primary); color: #fff;
+  font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
 }
-.primary-btn:hover    { background: var(--accent-hover); }
-.primary-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+.primary-btn:hover    { background: var(--primary-hover); }
+.primary-btn:disabled { background: var(--line); color: var(--muted); cursor: not-allowed; }
 
-.auth-status { min-height: 20px; margin-top: 14px; font-size: 0.9rem; line-height: 1.5; }
+.auth-status { min-height: 20px; margin-top: 16px; font-size: 0.9rem; line-height: 1.5; }
 .auth-status.error   { color: var(--danger); }
-.auth-status.success { color: var(--accent); }
+.auth-status.success { color: var(--primary); }
 
 .link-btn {
-  margin-top: 8px; padding: 0; border: 0; background: none;
-  color: var(--accent); font: inherit; font-size: 0.9rem; text-decoration: underline; cursor: pointer;
+  display: inline-block; margin-top: 8px; padding: 0 0 3px; border: 0; border-bottom: 1px solid currentColor; background: none;
+  color: var(--text); font-family: var(--font-mono); font-size: 12px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; cursor: pointer;
 }
+.link-btn:hover { color: var(--primary); }
 
 .auth-foot { margin: 0; color: var(--muted); font-size: 0.85rem; text-align: center; }
 .auth-back { color: var(--muted); font-size: 0.85rem; }
-.auth-back:hover { color: var(--accent); }
+.auth-back:hover { color: var(--primary); }

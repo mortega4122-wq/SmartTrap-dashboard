@@ -15,7 +15,7 @@ The SmartTraps operate as distributed field nodes, while an autonomous robotic p
 | `contact.html`, `assets/js/contact.js` | Contact Us page: field demo request form, saved to Supabase `demo_requests` |
 | `assets/css/site.css` | Website styles; colors and fonts are tokens at the top |
 | `assets/js/site.js` | Shared website header (including the Contact Us and Dashboard Login buttons) and footer |
-| `assets/img/` | Logo and images |
+| `assets/img/` | Website photos; `assets/img/README.md` lists the file names each page expects |
 | `downloads/` | PDFs linked from the Documentation page |
 | `dashboard/` | SmartTrap dashboard pages, plus `login.html` and `set-password.html` |
 | `dashboard/js/auth.js` | Supabase client, login check, and request headers used by every dashboard page |
