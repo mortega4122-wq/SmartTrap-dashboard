@@ -393,8 +393,8 @@
       <button class="heatmap-btn" id="btn-heat-hum" onclick="toggleHeatmap('humidity')">
         <div class="heatmap-btn-dot" style="background:#38bdf8"></div> Humidity
       </button>
-      <button class="heatmap-btn" disabled id="btn-heat-pest">
-        <div class="heatmap-btn-dot" style="background:#a78bfa"></div> Pest Conc. <span style="font-size:8px;opacity:0.6">SOON</span>
+      <button class="heatmap-btn" id="btn-heat-pest" onclick="toggleHeatmap('pests')">
+        <div class="heatmap-btn-dot" style="background:#a78bfa"></div> Pest Conc.
       </button>
     </div>
 
@@ -479,6 +479,13 @@
     return nodeData;
   }
 
+  // Beetles in a trap: entries minus exits across ALL beetle events. A separate query,
+  // so the row limits on the sensor queries don't cut off older detections.
+  async function fetchInsectCount(nodeId) {
+    const rows = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&event_type=in.(beetle_count_added,beetle_count_removed)&select=event_type`);
+    return Array.isArray(rows) ? rows.reduce((n, r) => n + (r.event_type === "beetle_count_added" ? 1 : -1), 0) : 0;
+  }
+
   async function buildNodeCard(nodeId, coords) {
     const rows    = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&order=upload_timestamp.desc&limit=200`);
     const hasData = Array.isArray(rows) && rows.length > 0;
@@ -493,10 +500,7 @@
       lastSeenFull = new Date(topRow.upload_timestamp).toLocaleString();
     }
 
-    // Fetch ALL beetle events separately — the 200-row sensor limit above would otherwise cut off older beetle events
-    const beetleRows = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&event_type=in.(beetle_count_added,beetle_count_removed)&select=event_type`);
-    const added   = Array.isArray(beetleRows) ? beetleRows.filter(r => r.event_type === "beetle_count_added").length   : 0;
-    const removed = Array.isArray(beetleRows) ? beetleRows.filter(r => r.event_type === "beetle_count_removed").length : 0;
+    const insects = await fetchInsectCount(nodeId);
     const toF     = c => ((c * 9/5) + 32).toFixed(1);
     const tempVal = temp ? toF(parseFloat(temp.event_value)) : "—";
     const humVal  = hum  ? parseFloat(hum.event_value).toFixed(1) : "—";
@@ -541,7 +545,7 @@
       <div class="node-metrics">
         <div class="metric"><div class="metric-label">Temperature</div><div class="metric-value">${tempVal}<span class="metric-unit">${temp ? '°F' : ''}</span></div>${tempStats}</div>
         <div class="metric"><div class="metric-label">Humidity</div><div class="metric-value">${humVal}<span class="metric-unit">${hum ? '%' : ''}</span></div>${humStats}</div>
-        <div class="metric"><div class="metric-label">Insects</div><div class="metric-value insects">${added - removed}</div></div>
+        <div class="metric"><div class="metric-label">Insects</div><div class="metric-value insects">${insects}</div></div>
         <div class="metric"><div class="metric-label">Battery</div><div class="metric-value">${battVal !== null ? battVal.toFixed(2) : '—'}<span class="metric-unit">${battVal !== null ? 'V' : '(not wired)'}</span></div><div class="metric-sub">RSSI: ${rssi !== null ? rssi + ' dBm' : '—'}</div></div>
       </div>
       ${staleBanner}${locationBadge}
@@ -550,7 +554,7 @@
     `;
     document.getElementById("nodes-list").appendChild(card);
     if (isLive) document.getElementById("last-updated").textContent = lastSeenStr;
-    return { nodeId, coords, insectVal: added - removed, tempVal, humVal };
+    return { nodeId, coords, insectVal: insects, tempVal, humVal };
   }
 
   // ── LEAFLET MAP ──────────────────────────────────────
@@ -675,8 +679,8 @@
   // HEATMAP ENGINE
   // ══════════════════════════════════════════════════════
 
-  let heatmapActive  = null;   // 'temp' | 'humidity' | null
-  let heatNodeData   = [];     // [{lat, lng, temp, humidity}, ...]
+  let heatmapActive  = null;   // 'temp' | 'humidity' | 'pests' | null
+  let heatNodeData   = [];     // [{lat, lng, temp, humidity, pests}, ...]
   let boundaryLatLngs = [];    // [[lat,lng], ...] from saved orchard boundary
 
   // ── Fetch orchard boundary ────────────────────────────
@@ -716,7 +720,8 @@
         lat:      coords[0],
         lng:      coords[1],
         temp:     tempRow ? ((parseFloat(tempRow.event_value) * 9/5) + 32) : null,
-        humidity: humRow  ? parseFloat(humRow.event_value) : null
+        humidity: humRow  ? parseFloat(humRow.event_value) : null,
+        pests:    rows.length ? await fetchInsectCount(nodeId) : null   // same count as the node cards
       });
     }
     return result;
@@ -751,30 +756,38 @@
     return weightSum === 0 ? null : valueSum / weightSum;
   }
 
-  // ── Value → blue-to-red RGBA ─────────────────────────
-  function valueToColor(t) {
-    // t in [0,1]: 0=cool blue, 0.5=green/yellow, 1=hot red
-    // Uses a 4-stop gradient: blue → cyan → yellow → red
-    const stops = [
-      [0,    [0,   0,   220]],
-      [0.33, [0,   200, 220]],
-      [0.66, [250, 220, 0  ]],
-      [1.0,  [220, 20,  20 ]]
-    ];
+  // ── Value → RGBA ─────────────────────────
+  // t in [0,1] along the heatmap's stops: [position, [r, g, b, alpha 0–255]]
+  function valueToColor(t, stops) {
     for (let i = 1; i < stops.length; i++) {
       if (t <= stops[i][0]) {
         const s = (t - stops[i-1][0]) / (stops[i][0] - stops[i-1][0]);
         const a = stops[i-1][1], b = stops[i][1];
-        return [
-          Math.round(a[0] + s * (b[0] - a[0])),
-          Math.round(a[1] + s * (b[1] - a[1])),
-          Math.round(a[2] + s * (b[2] - a[2])),
-          175   // alpha ~69% opacity
-        ];
+        return a.map((v, k) => Math.round(v + s * (b[k] - v)));
       }
     }
-    return [220, 20, 20, 175];
+    return stops[stops.length - 1][1];
   }
+
+  // ── Heatmap settings ─────────────────────────────────
+  const CLIMATE_STOPS = [   // blue → cyan → yellow → red, ~69% opacity
+    [0,    [0,   0,   220, 175]],
+    [0.33, [0,   200, 220, 175]],
+    [0.66, [250, 220, 0,   175]],
+    [1.0,  [220, 20,  20,  175]]
+  ];
+  const PEST_STOPS = [      // one violet ramp, light → dark, fading out near zero so the orchard shows through
+    [0,    [221, 214, 254, 0  ]],
+    [0.35, [167, 139, 250, 100]],
+    [0.7,  [124, 58,  237, 165]],
+    [1.0,  [91,  33,  182, 210]]
+  ];
+  const HEATMAPS = {
+    temp:     { title: "Temperature",    button: "btn-heat-temp", stops: CLIMATE_STOPS, label: v => v.toFixed(1) + "°F" },
+    humidity: { title: "Humidity",       button: "btn-heat-hum",  stops: CLIMATE_STOPS, label: v => v.toFixed(1) + "%" },
+    // Scaled from 0, not from the lowest trap, so a field with only a few beetles doesn't look like a hotspot
+    pests:    { title: "Beetles caught", button: "btn-heat-pest", stops: PEST_STOPS,    label: v => String(Math.round(v)), fromZero: true }
+  };
 
   // ── Draw legend bar canvas ────────────────────────────
   function drawLegendBar(minVal, maxVal, field) {
@@ -783,16 +796,15 @@
     const h      = canvas.height;
     for (let y = 0; y < h; y++) {
       const t     = 1 - y / (h - 1);  // top=max, bottom=min
-      const [r,g,b] = valueToColor(t);
+      const [r,g,b] = valueToColor(t, HEATMAPS[field].stops);
       ctx.fillStyle = `rgb(${r},${g},${b})`;
       ctx.fillRect(0, y, 16, 1);
     }
-    const mid = (minVal + maxVal) / 2;
-    const unit = field === "temp" ? "°F" : "%";
-    document.getElementById("heatmap-legend-max").textContent = maxVal.toFixed(1) + unit;
-    document.getElementById("heatmap-legend-mid").textContent = mid.toFixed(1) + unit;
-    document.getElementById("heatmap-legend-min").textContent = minVal.toFixed(1) + unit;
-    document.getElementById("heatmap-legend-title").textContent = field === "temp" ? "Temperature" : "Humidity";
+    const { label, title } = HEATMAPS[field];
+    document.getElementById("heatmap-legend-max").textContent = label(maxVal);
+    document.getElementById("heatmap-legend-mid").textContent = label((minVal + maxVal) / 2);
+    document.getElementById("heatmap-legend-min").textContent = label(minVal);
+    document.getElementById("heatmap-legend-title").textContent = title;
   }
 
   // ── Main render function ──────────────────────────────
@@ -813,7 +825,7 @@
     if (validNodes.length === 0) return;
 
     const values = validNodes.map(n => n[field]);
-    const minVal = Math.min(...values);
+    const minVal = HEATMAPS[field].fromZero ? 0 : Math.min(...values);
     const maxVal = Math.max(...values);
     const range  = maxVal - minVal || 1;
 
@@ -829,12 +841,6 @@
     const latStep = (neLat - swLat) / STEPS;
     const lngStep = (eLng  - wLng)  / STEPS;
 
-    // Calculate pixel size of each geographic cell
-    const cellPt0 = map.latLngToContainerPoint([neLat, wLng]);
-    const cellPt1 = map.latLngToContainerPoint([neLat - latStep, wLng + lngStep]);
-    const cellW   = Math.ceil(Math.abs(cellPt1.x - cellPt0.x)) + 1;
-    const cellH   = Math.ceil(Math.abs(cellPt1.y - cellPt0.y)) + 1;
-
     for (let row = 0; row <= STEPS; row++) {
       for (let col = 0; col <= STEPS; col++) {
         const lat = neLat - row * latStep;
@@ -847,12 +853,15 @@
         if (val === null) continue;
 
         const t = (val - minVal) / range;
-        const [r, g, b, a] = valueToColor(t);
+        const [r, g, b, a] = valueToColor(t, HEATMAPS[field].stops);
 
-        // Convert geographic point to pixel
-        const pt = map.latLngToContainerPoint([lat, lng]);
+        // Snap the cell to whole pixels, ending where the next cell starts, so
+        // translucent cells don't overlap into darker grid lines
+        const pt   = map.latLngToContainerPoint([lat, lng]);
+        const next = map.latLngToContainerPoint([lat - latStep, lng + lngStep]);
+        const x = Math.round(pt.x), y = Math.round(pt.y);
         ctx.fillStyle = `rgba(${r},${g},${b},${a / 255})`;
-        ctx.fillRect(pt.x, pt.y, cellW, cellH);
+        ctx.fillRect(x, y, Math.round(next.x) - x, Math.round(next.y) - y);
       }
     }
 
@@ -894,7 +903,7 @@
     // Switch active state
     heatmapActive = field;
     document.querySelectorAll(".heatmap-btn").forEach(b => b.classList.remove("active"));
-    document.getElementById(field === "temp" ? "btn-heat-temp" : "btn-heat-hum").classList.add("active");
+    document.getElementById(HEATMAPS[field].button).classList.add("active");
 
     // Load data if not already loaded
     if (heatNodeData.length === 0) {
