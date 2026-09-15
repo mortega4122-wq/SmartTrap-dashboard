@@ -654,6 +654,11 @@
             { href: "scan.html", label: "+ Add Another", cls: "secondary" }
           ]
         );
+      } else if (res.status === 409) {
+        // The check above can't see nodes registered to other accounts.
+        showStatus("error", "❌", "Node ID already registered",
+          `<strong>${nodeId}</strong> is registered to another account.<br>Sign in with that account, or choose a different ID.`);
+        resetForm();
       } else {
         const body = await res.text();
         showStatus("error", "❌", "Save failed",

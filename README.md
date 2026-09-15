@@ -20,7 +20,8 @@ The SmartTraps operate as distributed field nodes, while an autonomous robotic p
 | `dashboard/` | SmartTrap dashboard pages, plus `login.html` and `set-password.html` |
 | `dashboard/js/auth.js` | Supabase client, login check, and request headers used by every dashboard page |
 | `scan.html`, `detail.html`, `orchard-setup.html`, `index-mobile.html` (root) | Redirects into `dashboard/`, so existing bookmarks and the QR codes on traps keep working |
-| `supabase/rls-policies.sql` | Database access rules to apply once login works |
+| `supabase/rls-policies.sql` | Per-account access rules (row-level security); run once login works |
+| `supabase/demo-data.sql` | Simulated 10-trap orchard for the demo login, refreshed daily |
 | `supabase/demo-requests.sql` | Creates the table behind the Contact Us form |
 
 # Contact form setup (one time, in Supabase)
@@ -32,4 +33,13 @@ Run `supabase/demo-requests.sql` in the SQL Editor. Visitors can submit requests
    - Site URL: `https://mortega4122-wq.github.io/SmartTrap-dashboard/dashboard/login.html`
    - Redirect URLs: add `https://mortega4122-wq.github.io/SmartTrap-dashboard/dashboard/set-password.html`
 3. **Authentication → Users → Invite user.** The invite email opens `set-password.html`, where the user chooses a password.
-4. Once sign-in works, read the header of `supabase/rls-policies.sql` and run it. Until then, the tables can still be read and written with the publishable key.
+4. Once sign-in works, run `supabase/rls-policies.sql` (steps at the top of the file). Until then, anyone with the publishable key can read the dashboard tables.
+
+# Per-account data
+Each login sees only its own traps, readings, orchard boundary, and rover track. Supabase row-level security does the filtering; the dashboard pages don't filter by user.
+- A trap belongs to the login that registered it (QR code → `scan.html`). Its `trap_data` readings follow the node ID, so the Raspberry Pi needs no account setting.
+- Node IDs are unique across logins. Register field traps while signed in to the field login.
+- Field devices upload with a Supabase **secret** key, which these rules don't limit.
+
+# Demo account
+`supabase/demo-data.sql` loads a simulated 10-trap orchard (`demo-01` … `demo-10`) into one login, for showing the dashboard without real data. It generates the 4 days before it runs and schedules a daily refresh with Supabase Cron, so the charts stay full. Run `select public.refresh_demo_data();` for a fresh copy right before a demo; removal steps are at the bottom of the file.
