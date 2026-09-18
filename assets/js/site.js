@@ -53,12 +53,25 @@
       header.classList.toggle("is-solid", !hasDarkHero || window.scrollY > 24 || nav.classList.contains("open"));
     };
 
-    toggle.addEventListener("click", () => {
-      const open = toggle.getAttribute("aria-expanded") !== "true";
+    // The menu is a full-width panel below the header, so while it's open the page
+    // behind it is locked. Escape and following a link both close it again.
+    const setNav = open => {
       toggle.setAttribute("aria-expanded", String(open));
       nav.classList.toggle("open", open);
+      document.body.classList.toggle("nav-open", open);
       updateHeader();
+    };
+
+    toggle.addEventListener("click", () => setNav(toggle.getAttribute("aria-expanded") !== "true"));
+    nav.addEventListener("click", e => { if (e.target.closest("a")) setNav(false); });
+    document.addEventListener("keydown", e => {
+      if (e.key !== "Escape" || toggle.getAttribute("aria-expanded") !== "true") return;
+      setNav(false);
+      toggle.focus();
     });
+    // Resizing past the breakpoint reveals the full nav, so drop the open state.
+    window.matchMedia("(min-width: 1041px)").addEventListener("change", e => { if (e.matches) setNav(false); });
+
     window.addEventListener("scroll", updateHeader, { passive: true });
     updateHeader();
   }

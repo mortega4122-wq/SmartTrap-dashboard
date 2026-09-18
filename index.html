@@ -4,7 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>VerdanTech Solutions — Smart Pest Monitoring for Orchards</title>
-  <meta name="description" content="SmartTrap by VerdanTech Solutions counts orchard pests automatically and reports trap data to one dashboard."/>
+  <meta name="description" content="SmartTrap counts orchard pests with infrared beams instead of cameras, and reports every trap to one dashboard."/>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
@@ -21,9 +22,9 @@
       <img src="assets/img/hero-orchard.jpg" alt="">
     </div>
     <div class="container hero-content">
-      <p class="eyebrow">Smart pest monitoring for orchards</p>
+      <p class="eyebrow">Orchard pest monitoring</p>
       <h1>Know what's in your traps <span class="accent">without walking every row.</span></h1>
-      <p class="lead">SmartTrap counts insects and tracks orchard conditions around the clock, so you can spot pest pressure early and act sooner.</p>
+      <p class="lead">Every trap counts the insects that enter it and logs the conditions around it, then reports to one dashboard. You watch pest pressure build instead of finding it on your next walk.</p>
       <div class="actions">
         <a class="btn btn-primary" href="dashboard/index.html">Go to dashboard <span aria-hidden="true">↗</span></a>
         <a class="btn btn-outline" href="product.html">How it works <span aria-hidden="true">↗</span></a>
@@ -34,24 +35,24 @@
   <section class="section">
     <div class="container">
       <div class="intro">
-        <h2 class="display">Replace weekly trap checks with <span class="accent">counts that report in on their own.</span></h2>
+        <h2 class="display">A weekly trap check covers about an hour. It's the other 167 that cost you.</h2>
         <div class="intro-body">
-          <p>Most orchards still monitor pests by checking traps by hand, often once a week. Between visits, pest activity goes unseen.</p>
-          <p>SmartTrap closes that gap. Every trap counts insects as they arrive and sends the data, along with temperature and humidity, to one dashboard.</p>
+          <p>Hand-checking traps is still the standard, and for good reason — it works. It just doesn't scale to every trap, every day.</p>
+          <p>SmartTrap counts in between. Each trap logs the insects that enter it alongside the temperature and humidity around it, and all of it lands in one dashboard you can open from the truck.</p>
         </div>
       </div>
       <div class="features">
         <div class="feature">
-          <h3>Counts insects automatically</h3>
-          <p>An infrared sensor registers each insect that enters the trap. No manual counting.</p>
+          <h3>The trap does the counting</h3>
+          <p>Infrared beams cross the detection chamber and register each insect on its way in. Nothing to tally by hand.</p>
         </div>
         <div class="feature">
-          <h3>The whole orchard in one view</h3>
-          <p>Every trap on a satellite map, with its latest counts, conditions, and battery level.</p>
+          <h3>The whole block in one view</h3>
+          <p>Every trap on a satellite map with its latest count, the conditions around it, and how long it's been since it last reported.</p>
         </div>
         <div class="feature">
-          <h3>Built to be affordable</h3>
-          <p>No cameras and no image processing. Low-power traps share one gateway to keep the cost per trap down.</p>
+          <h3>Cheap enough to cover the block</h3>
+          <p>No cameras, so there are no photos to move and no image processing to pay for. Traps share a single gateway between them.</p>
         </div>
       </div>
     </div>
@@ -65,9 +66,10 @@
         </div>
         <div class="split-body">
           <p class="eyebrow">SmartTrap</p>
-          <h2>A trap that reports in on its own</h2>
-          <p>Two layers of infrared beams count insects as they enter. Each trap logs temperature and humidity, keeps a local backup, and runs on solar-charged battery power.</p>
-          <a class="text-link" href="product.html">Explore the product</a>
+          <h2>What sits in the orchard</h2>
+          <p>Two layers of infrared beams line the detection chamber. An insect on its way in breaks both, and the second layer is what keeps one insect from being counted twice.</p>
+          <p>The trap records the count with the temperature and humidity at that moment, keeps its own backup, and runs on a solar-charged battery.</p>
+          <a class="text-link" href="product.html">See how it works</a>
         </div>
       </div>
       <div class="split reverse">
@@ -76,8 +78,8 @@
         </div>
         <div class="split-body">
           <p class="eyebrow">Dashboard</p>
-          <h2>Clear, actionable orchard data</h2>
-          <p>See where your traps are, which are reporting, and what they're catching, with history charts and temperature and humidity heatmaps.</p>
+          <h2>What you open in the morning</h2>
+          <p>Traps on a satellite map, a card for each one, and history charts going back as far as the trap has been running. Heatmaps fill in the space between traps — temperature, humidity, and where the beetles are concentrating.</p>
           <a class="text-link" href="dashboard/index.html">Go to the dashboard</a>
         </div>
       </div>
@@ -85,21 +87,59 @@
   </section>
 
   <section class="section">
+    <div class="container">
+      <div class="intro">
+        <h2 class="display">A detection is a line of text, not a photograph.</h2>
+        <div class="intro-body">
+          <p>That one decision sets the shape of everything else. A record this small moves over a low-power link, which is why the traps run on a battery and share one cellular connection between them instead of each paying for its own.</p>
+        </div>
+      </div>
+      <div class="spec">
+        <div class="spec-row">
+          <p class="spec-key">Node</p>
+          <p class="spec-val">Which trap the record came from.</p>
+        </div>
+        <div class="spec-row">
+          <p class="spec-key">Timestamp</p>
+          <p class="spec-val">When the beam broke, to the second.</p>
+        </div>
+        <div class="spec-row">
+          <p class="spec-key">Event</p>
+          <p class="spec-val">What happened: an insect counted in, an insect counted out, or a scheduled temperature or humidity reading.</p>
+        </div>
+        <div class="spec-row">
+          <p class="spec-key">Value &amp; unit</p>
+          <p class="spec-val">The reading itself, with the unit it was measured in.</p>
+        </div>
+        <div class="spec-row">
+          <p class="spec-key">Battery</p>
+          <p class="spec-val">Volts at the trap when the record was written.</p>
+        </div>
+        <div class="spec-row">
+          <p class="spec-key">Signal</p>
+          <p class="spec-val">How well the trap was reaching its gateway.</p>
+        </div>
+      </div>
+      <p class="spec-note">Temperature and humidity are logged as a pair about every half hour. Counts are logged as they happen.</p>
+    </div>
+  </section>
+
+  <section class="section section-alt">
     <div class="container intro">
       <div>
         <p class="eyebrow">Current focus</p>
-        <h2 class="display">Early detection of <em>Carpophilus truncatus</em> <span class="accent">in California almonds.</span></h2>
+        <h2>Early detection of <em>Carpophilus truncatus</em> in California almonds</h2>
       </div>
       <div class="intro-body">
-        <p>SmartTrap is being developed and field-tested to catch this invasive beetle early, before populations build up in the orchard.</p>
-        <p class="placeholder-note">Placeholder: why this pest matters to almond growers and what an early warning makes possible.</p>
+        <p>SmartTrap is in field testing against this invasive beetle, with traps reporting from a California almond block. The aim is to see it arrive rather than to find out later how long it had been there.</p>
+        <p class="placeholder-note">Why this pest matters to almond growers, and what an early warning makes possible.</p>
       </div>
     </div>
   </section>
 
-  <section class="section section-alt cta">
+  <section class="section section-tight cta">
     <div class="container cta-inner">
-      <h2 class="display">See SmartTrap <span class="accent">in your orchard.</span></h2>
+      <h2 class="display">We'll set traps in your block and leave the dashboard open.</h2>
       <div class="actions">
         <a class="btn btn-cta" href="contact.html">Request a demo <span aria-hidden="true">↗</span></a>
         <a class="btn btn-outline" href="dashboard/index.html">Dashboard login <span aria-hidden="true">↗</span></a>

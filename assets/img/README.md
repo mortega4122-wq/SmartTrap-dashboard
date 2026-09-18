@@ -1,6 +1,6 @@
 # Website images
 
-Pages look for these files. Until a file exists, its spot shows a striped placeholder labeled with the file name. Photos are cropped to fill their box, so any size works, but landscape shots of at least 2000px wide look best for the heroes.
+Pages look for these files. Until a file exists, its spot shows a plain block with corner registration marks and the file name it is waiting for. Photos are cropped to fill their box, so any size works, but landscape shots of at least 2000px wide look best for the heroes.
 
 | File | Used on |
 |---|---|

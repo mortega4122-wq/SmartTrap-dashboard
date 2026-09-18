@@ -4,7 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Our Product — VerdanTech Solutions</title>
-  <meta name="description" content="How the SmartTrap monitoring system detects pests and reports orchard conditions."/>
+  <meta name="description" content="How SmartTrap counts orchard pests with infrared beams instead of a camera, and what the trap, gateway, and dashboard each do."/>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
@@ -22,8 +23,8 @@
     </div>
     <div class="container hero-content">
       <p class="eyebrow">Our product</p>
-      <h1>The SmartTrap <span class="accent">monitoring system.</span></h1>
-      <p class="lead">A field trap, a gateway, and a dashboard that count pests and track orchard conditions automatically.</p>
+      <h1>Counting without <span class="accent">a camera.</span></h1>
+      <p class="lead">Two infrared beams, one shared gateway, and a dashboard. The whole system is built around keeping a detection small enough to be cheap to move.</p>
     </div>
   </section>
 
@@ -31,28 +32,70 @@
     <div class="container two-col">
       <div class="section-head">
         <p class="eyebrow">How it works</p>
-        <h2 class="display">From trap to dashboard, <span class="accent">automatically.</span></h2>
+        <h2>From the beam to the dashboard</h2>
+        <div class="diagram-frame">
+          <svg class="diagram" viewBox="0 0 230 220" role="img" aria-labelledby="trap-diagram-title trap-diagram-desc">
+            <title id="trap-diagram-title">Cross-section of a SmartTrap detection chamber</title>
+            <desc id="trap-diagram-desc">An insect falls through a funnel into a chamber crossed by two infrared beams, an upper layer and a lower layer, and settles in the bucket below.</desc>
+
+            <!-- funnel -->
+            <path class="d-line" d="M14 20 L66 82"/>
+            <path class="d-line" d="M156 20 L104 82"/>
+            <path class="d-faint" d="M14 20 H8"/>
+            <path class="d-faint" d="M156 20 H162"/>
+
+            <!-- detection chamber -->
+            <path class="d-line" d="M66 82 V144"/>
+            <path class="d-line" d="M104 82 V144"/>
+
+            <!-- path of the insect -->
+            <path class="d-faint d-dash" d="M85 32 V192"/>
+            <rect class="d-fill" x="82" y="109" width="6" height="6"/>
+
+            <!-- infrared layers: emitters filled, receivers open -->
+            <path class="d-beam" d="M66 100 H104"/>
+            <path class="d-beam" d="M66 126 H104"/>
+            <rect class="d-mark" x="59" y="97" width="5" height="5"/>
+            <rect class="d-mark" x="59" y="123" width="5" height="5"/>
+            <rect class="d-beam" x="106" y="97" width="5" height="5"/>
+            <rect class="d-beam" x="106" y="123" width="5" height="5"/>
+
+            <!-- bucket -->
+            <path class="d-line" d="M66 144 L58 156 L64 204 H106 L112 156 L104 144"/>
+
+            <!-- leaders to a single label column -->
+            <path class="d-faint" d="M170 38 H141"/>
+            <text x="176" y="40">Funnel</text>
+            <path class="d-faint" d="M170 100 H113"/>
+            <text class="is-beam" x="176" y="102">Upper</text>
+            <path class="d-faint" d="M170 126 H113"/>
+            <text class="is-beam" x="176" y="128">Lower</text>
+            <path class="d-faint" d="M170 178 H110"/>
+            <text x="176" y="180">Bucket</text>
+          </svg>
+        </div>
+        <p class="diagram-caption">Emitters on one wall, receivers on the other. An insect has to break both layers, in order, to be counted.</p>
       </div>
       <ol class="numbered">
         <li><div>
-          <h3>An insect enters the trap</h3>
-          <p>Target insects are drawn in and funnel down into the detection chamber.</p>
+          <h3>An insect enters</h3>
+          <p>The lure and funnel do what they have always done. The insect drops toward the chamber.</p>
         </div></li>
         <li><div>
-          <h3>Infrared beams detect it</h3>
-          <p>Two layers of infrared beams line the chamber. Each break is counted, and the second layer prevents double counts.</p>
+          <h3>Two beams break</h3>
+          <p>Infrared layers line the chamber, upper and lower. The second layer is what keeps one insect from being counted twice.</p>
         </div></li>
         <li><div>
-          <h3>The trap logs the event</h3>
-          <p>Every detection is saved with a timestamp, temperature, humidity, and battery level, with a local backup.</p>
+          <h3>The trap writes it down</h3>
+          <p>Time, count, temperature, humidity, battery. Written to onboard storage first, so a lost connection never costs a record.</p>
         </div></li>
         <li><div>
-          <h3>A gateway relays the data</h3>
-          <p>A shared gateway collects data from nearby traps over Wi-Fi and sends it to the cloud over cellular.</p>
+          <h3>The gateway picks it up</h3>
+          <p>Traps reach a nearby gateway over short-range Wi-Fi. The gateway carries the cellular connection on behalf of all of them.</p>
         </div></li>
         <li><div>
-          <h3>You see it on the dashboard</h3>
-          <p>Trap locations, counts, and conditions on a map, with history charts and heatmaps.</p>
+          <h3>It shows up on the map</h3>
+          <p>Counts and conditions per trap, history charts, and heatmaps across the block.</p>
         </div></li>
       </ol>
     </div>
@@ -61,8 +104,7 @@
   <section class="section section-alt">
     <div class="container">
       <div class="section-head">
-        <p class="eyebrow">The system</p>
-        <h2 class="display">Three parts, <span class="accent">one network.</span></h2>
+        <h2>The three pieces</h2>
       </div>
       <div class="tiles">
         <article class="tile">
@@ -72,7 +114,7 @@
           <p class="eyebrow">In the orchard</p>
           <h3>SmartTrap field node</h3>
           <ul>
-            <li>Dual-layer infrared detection</li>
+            <li>Two infrared detection layers</li>
             <li>Temperature and humidity sensor</li>
             <li>Onboard backup storage</li>
             <li>Solar-charged battery</li>
@@ -82,12 +124,12 @@
           <div class="media" data-label="assets/img/gateway.jpg">
             <img src="assets/img/gateway.jpg" alt="SmartTrap field gateway" loading="lazy">
           </div>
-          <p class="eyebrow">At the edge</p>
+          <p class="eyebrow">At the edge of the block</p>
           <h3>Field gateway</h3>
           <ul>
-            <li>Collects data from nearby traps</li>
+            <li>Collects from every trap in range</li>
             <li>Cellular connection to the cloud</li>
-            <li>Holds data if the connection drops</li>
+            <li>Holds data when the link drops</li>
           </ul>
         </article>
         <article class="tile">
@@ -99,8 +141,8 @@
           <ul>
             <li>Satellite map of every trap</li>
             <li>History charts per trap</li>
-            <li>Temperature and humidity heatmaps</li>
-            <li>Register traps from your phone</li>
+            <li>Temperature, humidity, and pest heatmaps</li>
+            <li>Register a trap from your phone</li>
           </ul>
         </article>
       </div>
@@ -110,12 +152,10 @@
   <section class="section">
     <div class="container">
       <div class="intro">
-        <div>
-          <p class="eyebrow">Comparison</p>
-          <h2 class="display">How SmartTrap <span class="accent">compares.</span></h2>
-        </div>
+        <h2 class="display">Against a camera trap</h2>
         <div class="intro-body">
-          <p>Many automated traps rely on cameras and image recognition. SmartTrap takes a simpler approach built around reliable counting.</p>
+          <p>Most automated traps take a photo and run it through an image model. That buys species identification, and it costs power, bandwidth, and hardware on every single trap.</p>
+          <p>SmartTrap gives up the identification and keeps the rest. For a grower watching one known pest, counting reliably matters more than naming what was counted.</p>
         </div>
       </div>
       <div class="table-wrap">
@@ -128,41 +168,40 @@
             </tr>
           </thead>
           <tbody>
-            <tr><th scope="row">Detection method</th><td>Infrared beam break</td><td>Camera photos and image recognition</td></tr>
-            <tr><th scope="row">Data sent per detection</th><td>A small text record</td><td>Photos</td></tr>
-            <tr><th scope="row">Power needs</th><td class="tbd">TBD</td><td class="tbd">TBD</td></tr>
-            <tr><th scope="row">Hardware cost per trap</th><td class="tbd">TBD</td><td class="tbd">TBD</td></tr>
-            <tr><th scope="row">Ongoing data costs</th><td class="tbd">TBD</td><td class="tbd">TBD</td></tr>
-            <tr><th scope="row">Species identification</th><td class="tbd">TBD</td><td class="tbd">TBD</td></tr>
+            <tr><th scope="row">Detection method</th><td>Infrared beam break</td><td>Photographs and image recognition</td></tr>
+            <tr><th scope="row">Data sent per detection</th><td>A short text record</td><td>An image</td></tr>
+            <tr><th scope="row">Species identification</th><td>No</td><td>Yes</td></tr>
+            <tr><th scope="row">Power needs</th><td class="tbd">Pending</td><td class="tbd">Pending</td></tr>
+            <tr><th scope="row">Hardware cost per trap</th><td class="tbd">Pending</td><td class="tbd">Pending</td></tr>
+            <tr><th scope="row">Ongoing data costs</th><td class="tbd">Pending</td><td class="tbd">Pending</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="table-caption">Detailed comparison coming soon. TBD values will be filled in after field testing.</p>
+      <p class="table-caption">Power and cost figures are still being measured in the field. They go here when they are real numbers rather than estimates.</p>
     </div>
   </section>
 
   <section class="section section-alt">
     <div class="container">
       <div class="section-head">
-        <p class="eyebrow">Cost</p>
-        <h2 class="display">How we keep <span class="accent">costs low.</span></h2>
+        <h2>Where the cost goes</h2>
       </div>
       <div class="features cols-2">
         <div class="feature">
-          <h3>No cameras or image processing</h3>
-          <p>Counting with an infrared beam needs far less power, storage, and bandwidth than photos.</p>
+          <h3>No camera, no image processing</h3>
+          <p>A beam break is a few dozen bytes. A photograph is not, and everything downstream of it — storage, bandwidth, processing — gets priced accordingly.</p>
         </div>
         <div class="feature">
-          <h3>One cellular connection for many traps</h3>
-          <p>Traps reach a shared gateway over low-power Wi-Fi, so no trap needs its own cellular plan.</p>
+          <h3>One cellular connection, shared</h3>
+          <p>Traps talk to the gateway over short-range Wi-Fi. Only the gateway pays for cell service.</p>
         </div>
         <div class="feature">
-          <h3>Location set once at install</h3>
-          <p>A trap's position is saved when it's placed, so no GPS module drains its battery.</p>
+          <h3>Location entered once</h3>
+          <p>A trap that never moves doesn't need to keep asking where it is. Its position is saved at install, by scanning the code on the side of the trap.</p>
         </div>
         <div class="feature">
-          <h3>Backups at every step</h3>
-          <p>Traps and the gateway both keep local copies, so a dropped connection doesn't lose data.</p>
+          <h3>Two places to fall back on</h3>
+          <p>The trap keeps a copy and so does the gateway. A dropped connection delays the data. It doesn't lose it.</p>
         </div>
       </div>
     </div>
@@ -171,41 +210,50 @@
   <section class="section">
     <div class="container two-col">
       <div class="section-head">
-        <p class="eyebrow">FAQ</p>
-        <h2 class="display">Frequently asked questions</h2>
+        <h2>Questions we get</h2>
       </div>
       <div class="faq-list">
         <details class="faq-item">
           <summary>How does SmartTrap detect insects?</summary>
-          <div class="faq-answer"><p>Insects entering the trap pass through two layers of infrared beams. Each beam break is logged as a detection with a timestamp, and the second layer keeps the same insect from being counted twice.</p></div>
+          <div class="faq-answer"><p>Insects entering the trap pass through two layers of infrared beams. Each break is logged as a detection with a timestamp, and the second layer keeps the same insect from being counted twice.</p></div>
         </details>
         <details class="faq-item">
           <summary>Does my orchard need Wi-Fi or internet?</summary>
-          <div class="faq-answer"><p>No. Traps connect to a nearby SmartTrap gateway over short-range Wi-Fi, and the gateway sends data to the cloud over cellular. The gateway just needs cell coverage.</p></div>
+          <div class="faq-answer"><p>No. Traps connect to a nearby SmartTrap gateway over short-range Wi-Fi, and the gateway sends data on over cellular. The gateway is the only part that needs cell coverage.</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>Will it tell me what species I caught?</summary>
+          <div class="faq-answer"><p>No. A beam break counts an insect; it doesn't identify one. SmartTrap is built for growers watching a known pest with a matched lure, where the question is how many and when, not what.</p></div>
         </details>
         <details class="faq-item">
           <summary>How long does the battery last?</summary>
-          <div class="faq-answer"><p>Each trap runs on a solar-charged battery. Placeholder: expected runtime and performance in low-sun conditions.</p></div>
+          <div class="faq-answer">
+            <p>Each trap runs on a solar-charged battery.</p>
+            <p class="placeholder-note">Expected runtime, and how it holds up through a stretch of low sun.</p>
+          </div>
         </details>
         <details class="faq-item">
           <summary>What maintenance do traps need?</summary>
-          <div class="faq-answer"><p>Placeholder: service intervals for lures, cleaning, and battery checks.</p></div>
+          <div class="faq-answer"><p class="placeholder-note">Service intervals for lures, cleaning, and battery checks.</p></div>
         </details>
         <details class="faq-item">
           <summary>Can I export my data?</summary>
-          <div class="faq-answer"><p>Data export is on the roadmap. Placeholder: supported formats and integrations.</p></div>
+          <div class="faq-answer">
+            <p>Not yet. Export is on the roadmap.</p>
+            <p class="placeholder-note">Supported formats and integrations.</p>
+          </div>
         </details>
         <details class="faq-item">
           <summary>Where are the technical specifications?</summary>
-          <div class="faq-answer"><p>Full specifications are coming soon and will be posted on the <a href="docs.html">Documentation</a> page.</p></div>
+          <div class="faq-answer"><p>They will be posted on the <a href="docs.html">Documentation</a> page once the production node is finalized.</p></div>
         </details>
       </div>
     </div>
   </section>
 
-  <section class="section section-alt cta">
+  <section class="section section-tight section-alt cta">
     <div class="container cta-inner">
-      <h2 class="display">See SmartTrap <span class="accent">in your orchard.</span></h2>
+      <h2 class="display">Want one in the ground?</h2>
       <div class="actions">
         <a class="btn btn-cta" href="contact.html">Request a demo <span aria-hidden="true">↗</span></a>
         <a class="btn btn-outline" href="dashboard/index.html">Dashboard login <span aria-hidden="true">↗</span></a>

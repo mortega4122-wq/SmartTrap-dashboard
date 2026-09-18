@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="VerdanTech SmartTrap">
+  <rect width="32" height="32" fill="#1c261d"/>
+  <g stroke="#9fd07f" stroke-width="2.6" stroke-linecap="butt">
+    <!-- upper beam, broken by an insect passing through -->
+    <path d="M6 12h7.2M18.8 12H26"/>
+    <!-- lower beam, intact -->
+    <path d="M6 20h20"/>
+  </g>
+</svg>
