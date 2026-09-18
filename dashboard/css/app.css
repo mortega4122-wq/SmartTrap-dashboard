@@ -107,6 +107,8 @@ button, input, select, textarea { font: inherit; letter-spacing: inherit; }
 
 .app-header-end { margin-left: auto; display: flex; align-items: center; gap: 18px; }
 .app-status { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted); white-space: nowrap; }
+/* Development-only link; the dashed edge marks it as not part of the product. */
+.dev-link { border-style: dashed; }
 
 /* ── BUTTONS ────────────────────────────────────────────── */
 .btn {
@@ -139,9 +141,11 @@ button, input, select, textarea { font: inherit; letter-spacing: inherit; }
 /* ── STATUS ─────────────────────────────────────────────── */
 /* A trap's reporting state. Quiet when it reported; amber when it missed. */
 .status { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em; color: var(--color-muted); white-space: nowrap; }
-.status::before { content: ""; width: 6px; height: 6px; background: var(--color-primary); flex-shrink: 0; }
+/* Round markers, echoing the trap's pin on the map. */
+.status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--color-primary); flex-shrink: 0; }
 .status.is-missed { color: var(--color-warn); font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; }
-.status.is-missed::before { background: var(--color-warn); }
+/* Yellow like the pin; the text stays dark amber, since yellow text can't be read on white. */
+.status.is-missed::before { background: #facc15; box-shadow: 0 0 0 1px #a16207; }
 .status.is-none::before { background: var(--color-rule); }
 
 .warn-note { font-size: 13px; color: var(--color-warn); }
@@ -149,29 +153,33 @@ button, input, select, textarea { font: inherit; letter-spacing: inherit; }
 
 /* ── MAP PAGE LAYOUT ───────────────────────────────────── */
 .map-layout { flex: 1; display: grid; grid-template-columns: 380px minmax(0, 1fr); min-height: 0; }
-.sidebar { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; border-right: 1px solid var(--color-line); background: var(--color-bg); }
+/* Three layers, from back to front: pale sage list, deeper sage overview, white cards. */
+.sidebar { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; border-right: 1px solid var(--color-line); background: var(--color-surface); }
 .map-area { position: relative; min-width: 0; min-height: 0; }
 .map-area #map-view { position: absolute; inset: 0; }
 
 /* ── SUMMARY ────────────────────────────────────────────── */
-.summary { padding: 22px 20px 20px; border-bottom: 1px solid var(--color-line); }
+/* The orchard overview: a filled sage block, so it reads apart from the white trap cards. */
+.summary { --summary-line: #c5d0c1; margin: 12px 12px 0; padding: 18px 18px 16px; background: #e7eee2; border: 1px solid var(--summary-line); }
 .summary-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 16px; }
 .summary-place { color: var(--color-text); }
 .summary-rover { margin: -8px 0 16px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em; color: var(--color-muted); }
-.stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--color-line); }
-.stat { padding: 14px 0 12px; border-bottom: 1px solid var(--color-line); }
-.stat:nth-child(2n) { padding-left: 16px; border-left: 1px solid var(--color-line); }
+.stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--summary-line, var(--color-line)); }
+.stat { padding: 14px 0 12px; border-bottom: 1px solid var(--summary-line, var(--color-line)); }
+.stat:nth-child(2n) { padding-left: 16px; border-left: 1px solid var(--summary-line, var(--color-line)); }
+.stat:nth-last-child(-n + 2) { border-bottom: 0; padding-bottom: 2px; }
 .stat-value { font-size: 26px; line-height: 1.1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .stat-value small { margin-left: 3px; font-size: 14px; color: var(--color-muted); letter-spacing: 0; }
 .stat .label { display: flex; align-items: center; gap: 7px; margin-top: 6px; }
 
 /* ── TRAP LIST + CARDS ─────────────────────────────────── */
-.list-head { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: var(--color-bg); border-bottom: 1px solid var(--color-line); }
-.trap-list { display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 20px; }
+.list-head { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 12px 20px; background: var(--color-surface); border-bottom: 1px solid var(--color-line); }
+.trap-list { display: flex; flex-direction: column; gap: 10px; padding: 12px 12px 20px; }
 
+/* White cards with a heavier, darker edge, so each trap reads as its own object on the sage list. */
 .trap-card {
   display: block; padding: 14px 16px 12px; background: var(--color-bg);
-  border: 1px solid var(--color-line); color: inherit; text-decoration: none;
+  border: 2px solid #a3ada1; color: inherit; text-decoration: none;
   transition: border-color 0.15s, background-color 0.15s;
 }
 .trap-card:hover, .trap-card.is-hot { border-color: var(--color-primary); background: #fafcf9; color: inherit; }
@@ -238,7 +246,7 @@ button, input, select, textarea { font: inherit; letter-spacing: inherit; }
 .key-body li { display: flex; align-items: center; gap: 10px; font-size: 14px; white-space: nowrap; }
 .key-toggle { min-height: 32px; }
 .key-chip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 22px; flex-shrink: 0; background: var(--color-map-chip); }
-.key-chip .pin { position: static; transform: none; min-width: 18px; height: 16px; padding: 0 4px; font-size: 9px; }
+.key-chip .pin { position: static; transform: none; width: 17px; height: 17px; border-width: 1.5px; font-size: 9px; }
 .key-chip .rover-mark { position: static; width: 9px; height: 9px; margin: 0; transform: rotate(45deg); }
 .key-route { width: 22px; height: 0; border-top: 2px dashed #fff; }
 .key-range { width: 16px; height: 16px; border: 1.5px dashed rgba(255, 255, 255, 0.9); border-radius: 50%; background: rgba(255, 255, 255, 0.12); }
@@ -247,20 +255,29 @@ button, input, select, textarea { font: inherit; letter-spacing: inherit; }
 
 /* ── MAP SYMBOLS (Leaflet divIcons) ────────────────────── */
 .map-anchor { width: 0 !important; height: 0 !important; background: none; border: 0; }
+/* Trap pins: red circles, the shape growers know from the first dashboard. Yellow
+   means the trap missed the rover's last pass. The soft shadow lifts a pin off the
+   imagery; map symbols are the one place the dashboard uses a shadow. */
 .pin {
   position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 26px; height: 26px; padding: 0 6px;
-  background: #fff; border: 1.5px solid var(--color-forest); color: var(--color-forest);
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #dc2626; border: 2px solid #fff; color: #fff;
+  box-shadow: 0 0 0 1px #dc2626, 0 2px 6px rgba(0, 0, 0, 0.3);
   font-family: var(--font-sans); font-size: 12px; font-weight: 600; line-height: 1;
   font-variant-numeric: tabular-nums; white-space: nowrap;
   transition: transform 0.15s var(--ease-out), outline-color 0.15s;
   outline: 2px solid transparent; outline-offset: 2px;
 }
-.pin.is-missed { border: 2px solid var(--color-warn); }
-/* While a heatmap is on, a pin shows its own value in its own scale color. */
-.pin.is-value { min-width: 34px; height: 24px; border-color: rgba(20, 26, 21, 0.75); font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
-.pin.is-value.is-missed { border: 2px solid var(--color-warn); }
+.pin.is-missed { background: #facc15; color: #1c261d; box-shadow: 0 0 0 1px #ca8a04, 0 2px 6px rgba(0, 0, 0, 0.3); }
+/* While a heatmap is on, a pin becomes a round chip showing its own value, filled
+   with that value's scale color (set inline). It grows to fit "56.3°". */
+.pin.is-value {
+  width: auto; height: auto; min-width: 32px; aspect-ratio: 1; padding: 0 5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+}
+.pin.is-value.is-missed { border-color: #facc15; box-shadow: 0 0 0 1px #ca8a04, 0 2px 6px rgba(0, 0, 0, 0.3); }
 .pin.is-hot { transform: translate(-50%, -50%) scale(1.15); outline-color: var(--color-primary); z-index: 2; }
 /* Leaflet makes markers keyboard-focusable; the ring goes on the visible symbol. */
 .map-anchor:focus-visible { outline: none; }
@@ -301,7 +318,7 @@ button, input, select, textarea { font: inherit; letter-spacing: inherit; }
 }
 .tab-bar button[aria-selected="true"] { color: var(--color-text); border-bottom-color: var(--color-primary); }
 .phone-panel { flex: 1; min-height: 0; position: relative; }
-.phone-panel.is-scroll { overflow-y: auto; }
+.phone-panel.is-scroll { overflow-y: auto; background: var(--color-surface); }
 .phone-panel #map-view { position: absolute; inset: 0; }
 .phone-footer { padding: 4px 20px 28px; }
 

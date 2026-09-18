@@ -299,6 +299,33 @@ function mapKeyItems(kind) {
     <li>${chip('<span class="key-range"></span>')}Rover Wi-Fi range (~${WIFI_RADIUS_METERS} m)</li>`;
 }
 
+// ── Dev tools link ───────────────────────────────────────
+// A header link to the field gateway's own page, for development. Hidden unless this
+// browser was switched on by opening any dashboard page with ?dev=1 (?dev=0 turns it off).
+const DEV_TOOLS_URL = "http://10.42.0.1:8080/";
+
+function setupDevLink() {
+  const params = new URLSearchParams(location.search);
+  const asked  = params.has("dev") ? params.get("dev") === "1" : null;
+  let on = asked === true;
+  try {
+    if (asked !== null) localStorage.setItem("smarttrap-dev", asked ? "1" : "0");
+    on = localStorage.getItem("smarttrap-dev") === "1";
+  } catch {}
+  if (asked !== null) {
+    params.delete("dev");
+    const qs = params.toString();
+    history.replaceState(null, "", location.pathname + (qs ? `?${qs}` : "") + location.hash);
+  }
+  const end = document.querySelector(".app-header-end");
+  if (on && end && !end.querySelector(".dev-link")) {
+    end.insertAdjacentHTML("afterbegin",
+      `<a class="btn btn-outline btn-sm dev-link" href="${DEV_TOOLS_URL}" target="_blank" rel="noopener">Dev tools ↗</a>`);
+  }
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", setupDevLink);
+else setupDevLink();
+
 // Open/closed key that remembers its state per page. Storage can be unavailable.
 // On a narrow map it starts closed, so it doesn't sit on top of the heatmap panel.
 function setupMapKey(root, kind, storageKey, openByDefault = true) {
