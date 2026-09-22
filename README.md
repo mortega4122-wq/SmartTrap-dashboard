@@ -43,7 +43,9 @@ Run `supabase/demo-requests.sql` in the SQL Editor. Visitors can submit requests
 # Planning a trap layout
 For a block with more than a handful of traps, **Layout** places them evenly instead of by eye.
 1. Mark the block in **Orchard setup** and save. The next-step link takes you to Layout.
-2. Set a trap count (or a spacing), turn the grid to run along your tree rows, and set how far in from the edge to stay. Mark any point as a repeater.
+2. Set a trap count (or a spacing in feet), turn the grid to run along your tree rows, and set how far in from the edge to stay. Mark any point as a repeater.
+   - The grid is centred in the block, so the margins on opposite sides match. To build it around a particular spot instead, set a **centre point** on the map and a trap lands exactly there.
+   - Distances are in feet and areas in acres, matching the °F readings elsewhere in the dashboard.
 3. Save. The layout is on your account, so it's there when you open the dashboard on your phone in the field.
 4. At each point tap **Navigate** to walk to it with Google Maps, hang the trap, then **Add this trap** to record where it actually went in. The pane then shows how far that trap ended up from its planned spot.
 

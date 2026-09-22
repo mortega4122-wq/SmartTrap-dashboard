@@ -165,19 +165,34 @@ const MAX_CANDIDATES = 20000;
 // far inside, which is also just correct: never plan a trap on the fence line.
 const EDGE_EPS_M = 0.01;
 
-// opts: { spacingM, rowBearingDeg = 0, setbackM = 0, stagger = false }
+// Where to put the lattice lines along one axis.
+//
+// With an anchor, a line falls exactly on it, so the grower can pin the grid to a
+// spot they care about. Without one, the run of lines is CENTRED in [min, max],
+// which leaves equal margins on opposite sides of the block. Phase-locking to the
+// polygon centroid instead (as this used to) only guarantees a point AT the
+// centroid — on an L-shaped block that pushes the whole field against one edge
+// and leaves the far side unmonitored.
+function latticeStart(min, max, pitch, anchor) {
+  if (Number.isFinite(anchor)) return anchor + Math.ceil((min - anchor) / pitch) * pitch;
+  const n = Math.floor((max - min) / pitch);
+  return min + ((max - min) - n * pitch) / 2;
+}
+
+// opts: { spacingM, rowBearingDeg = 0, setbackM = 0, stagger = false, anchor = null }
 // rowBearingDeg is the compass direction the rows run (0 = north-south rows,
 // 90 = east-west rows), so it can be dialled to match the tree rows.
+// anchor is [lat, lng] to put a trap exactly there; null centres the grid.
 // Returns [{ n, label, lat, lng, x, y, u, v, row, col, edgeM }] in walking order.
 function generateLattice(polyLatLng, opts) {
-  const { spacingM, rowBearingDeg = 0, setbackM = 0, stagger = false } = opts || {};
+  const { spacingM, rowBearingDeg = 0, setbackM = 0, stagger = false, anchor = null } = opts || {};
   const poly = normalizeRing(polyLatLng);
   if (!(spacingM > 0) || poly.length < 3) return [];
 
   const [lat0, lng0] = verticesMean(poly);
   const proj = localProjection(lat0, lng0);
   const ring = poly.map(([lat, lng]) => proj.toXY(lat, lng));
-  const { centroid, area } = ringAreaCentroid(ring);
+  const { area } = ringAreaCentroid(ring);
   if (area < 100) return [];                      // a boundary too small to plan in
 
   // Rotate into (u, v): u runs along a row, v across the rows.
@@ -194,8 +209,6 @@ function generateLattice(polyLatLng, opts) {
     if (v < vMin) vMin = v;
     if (v > vMax) vMax = v;
   }
-  const [uC, vC] = fwd(centroid[0], centroid[1]);
-
   // Square: nearest neighbour = spacing, density 1/s². Quincunx: rows pitched at
   // s·√3/2 and offset half a step, so all six neighbours are exactly s away and
   // the same spacing fits ~15% more traps.
@@ -203,19 +216,34 @@ function generateLattice(polyLatLng, opts) {
   const rowPitch = stagger ? spacingM * Math.sqrt(3) / 2 : spacingM;
   if (((uMax - uMin) / colPitch + 1) * ((vMax - vMin) / rowPitch + 1) > MAX_CANDIDATES) return [];
 
-  // Phase-locked to the area centroid, not the bounding box. Anchoring at a
-  // corner would slide the whole field sideways every time spacing changes.
-  const rows = [];
+  let anchorU = null, anchorV = null;
+  if (Array.isArray(anchor) && Number.isFinite(anchor[0]) && Number.isFinite(anchor[1])) {
+    [anchorU, anchorV] = fwd(...proj.toXY(anchor[0], anchor[1]));
+  }
+  // Centre within the band the setback actually allows, not the raw bounding box.
+  // Otherwise, at a spacing that divides the block exactly, a whole row lands on
+  // the boundary and is thrown away — so widening the spacing could ADD traps.
   const minEdge = Math.max(setbackM, EDGE_EPS_M);
-  const jMin = Math.ceil((vMin - vC) / rowPitch), jMax = Math.floor((vMax - vC) / rowPitch);
-  for (let j = jMin; j <= jMax; j++) {
-    const v   = vC + j * rowPitch;
-    const off = (stagger && Math.abs(j) % 2 === 1) ? colPitch / 2 : 0;
-    const iMin = Math.ceil((uMin - uC - off) / colPitch);
-    const iMax = Math.floor((uMax - uC - off) / colPitch);
+  const uLo = uMin + minEdge, uHi = uMax - minEdge;
+  const vLo = vMin + minEdge, vHi = vMax - minEdge;
+  if (uHi < uLo || vHi < vLo) return [];           // the setback swallows the block
+
+  const uStart = latticeStart(uLo, uHi, colPitch, anchorU);
+  const vStart = latticeStart(vLo, vHi, rowPitch, anchorV);
+
+  const rows = [];
+  for (let j = 0; ; j++) {
+    const v = vStart + j * rowPitch;
+    if (v > vHi + 1e-9) break;
+    // Every other row steps half a column across for the quincunx pattern. Each
+    // row then takes its own index range, so a shifted row still fills the block
+    // instead of stopping short of one side.
+    const rowStart = uStart + ((stagger && j % 2 === 1) ? colPitch / 2 : 0);
+    const iMin = Math.ceil((uLo - rowStart) / colPitch);
+    const iMax = Math.floor((uHi - rowStart) / colPitch);
     const pts = [];
     for (let i = iMin; i <= iMax; i++) {
-      const u = uC + off + i * colPitch;
+      const u = rowStart + i * colPitch;
       const [x, y] = back(u, v);
       if (!pointInRing(x, y, ring)) continue;
       const edgeM = distToRing(x, y, ring);
@@ -284,6 +312,10 @@ function dominantBearingDeg(polyLatLng) {
 // Spacing whose lattice lands as close to `target` points as possible. Point
 // count is a decreasing STEP function of spacing, so an exact hit often doesn't
 // exist — this keeps the best attempt rather than assuming it converges.
+// On a block whose edges aren't axis-aligned the curve also has small upward
+// blips, because a lattice line can run alongside a sloped edge and a whole row
+// drops out at once. That's inherent to clipping a grid against a polygon, which
+// is why this tracks the best result seen instead of trusting the last one.
 // Each trial is a full generation, which is cheap, so brute bisection wins over
 // anything cleverer. Bisects on log spacing, so it behaves the same on a
 // one-acre block and a hundred-acre one.

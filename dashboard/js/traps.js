@@ -325,7 +325,8 @@ function mapKeyItems(kind) {
       <li>${chip('<span class="pin is-plan">1</span>')}Planned trap</li>
       <li>${chip('<span class="pin is-plan is-repeater">1</span>')}Planned repeater</li>
       <li>${chip('<span class="pin">1</span>')}Trap already deployed</li>
-      <li>${chip('<span class="key-drift"></span>')}Planned → where it went in</li>`;
+      <li>${chip('<span class="key-drift"></span>')}Planned → where it went in</li>
+      <li>${chip('<span class="key-centre"></span>')}Chosen centre point</li>`;
   }
   return `
     <li>${chip('<span class="pin">1</span>')}Trap</li>

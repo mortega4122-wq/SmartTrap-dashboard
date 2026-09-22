@@ -70,18 +70,18 @@
             <input class="input num" type="number" id="in-count" min="1" max="200" step="1" value="20"/>
           </div>
           <div class="field">
-            <label class="label" for="in-setback">Edge setback (m)</label>
-            <input class="input num" type="number" id="in-setback" min="0" max="500" step="1" value="10"/>
+            <label class="label" for="in-setback">Edge setback (ft)</label>
+            <input class="input num" type="number" id="in-setback" min="0" max="3000" step="5" value="30"/>
           </div>
         </div>
         <div class="field-row" id="row-spacing" hidden>
           <div class="field">
-            <label class="label" for="in-spacing">Spacing (m)</label>
-            <input class="input num" type="number" id="in-spacing" min="5" max="500" step="1" value="50"/>
+            <label class="label" for="in-spacing">Spacing (ft)</label>
+            <input class="input num" type="number" id="in-spacing" min="15" max="3000" step="5" value="200"/>
           </div>
           <div class="field">
-            <label class="label" for="in-setback2">Edge setback (m)</label>
-            <input class="input num" type="number" id="in-setback2" min="0" max="500" step="1" value="10"/>
+            <label class="label" for="in-setback2">Edge setback (ft)</label>
+            <input class="input num" type="number" id="in-setback2" min="0" max="3000" step="5" value="30"/>
           </div>
         </div>
 
@@ -92,6 +92,15 @@
             <button class="btn btn-outline" type="button" onclick="alignToBlock()">Align to block</button>
           </div>
           <p class="hint">Turn the grid to run along your tree rows. 0° = rows run north–south.</p>
+        </div>
+
+        <div class="field">
+          <span class="label">Centre point</span>
+          <div class="id-row">
+            <span class="input readout" id="anchor-readout">Centred in the block</span>
+            <button class="btn btn-outline" type="button" id="btn-anchor" onclick="anchorButton()">Set on map</button>
+          </div>
+          <p class="hint">Pin a trap to one spot and build the grid out from it. Otherwise the grid is centred, with equal margins on opposite sides.</p>
         </div>
 
         <div class="field">
@@ -138,12 +147,20 @@
   const BOUNDARY_COLOR = "#FFC72C";
   const INPUT_KEY      = "smarttrap-layout-inputs";
 
+  // Distances are metres everywhere inside geo.js and in the saved layout, and
+  // feet everywhere the grower sees them. Convert only at that boundary.
+  const FT_PER_M = 3.280839895;
+  const mToFt = metres => metres * FT_PER_M;
+  const ftToM = feet   => feet / FT_PER_M;
+  const ft    = metres => `${Math.round(mToFt(metres)).toLocaleString()} ft`;
+
   // ── MAP ──────────────────────────────────────────────
   const map = L.map("map-view", { zoomControl: true }).setView(DEFAULT_CENTER, 15);
   addImagery(map);
   setupMapKey(document.getElementById("map-key"), "layout", "smarttrap-layout-key", true);
   const boundaryGroup = L.layerGroup().addTo(map);
   const planGroup     = L.layerGroup().addTo(map);
+  const anchorGroup   = L.layerGroup().addTo(map);
 
   // ── STATE ────────────────────────────────────────────
   let boundary  = [];      // [[lat, lng], ...]
@@ -152,6 +169,8 @@
   let layoutRow = null;    // the saved trap_layouts row, if any
   let mode      = "count";
   let stagger   = false;
+  let anchor    = null;     // [lat, lng] to pin a trap to, or null to centre the grid
+  let picking   = false;    // waiting for a map click to set that point
   // Once a point has been toggled, moved, or removed by hand, regenerating would
   // throw that work away — so it stops happening on every keystroke.
   let edited    = false;
@@ -179,10 +198,11 @@
     return {
       mode,
       targetCount:   Math.max(1, Math.min(200, Math.round(val("in-count", 20)))),
-      spacingM:      Math.max(5, val("in-spacing", 50)),
+      spacingM:      ftToM(Math.max(15, val("in-spacing", 200))),
       rowBearingDeg: ((Math.round(val("in-bearing", 0)) % 180) + 180) % 180,
-      setbackM:      Math.max(0, val(mode === "count" ? "in-setback" : "in-setback2", 10)),
+      setbackM:      ftToM(Math.max(0, val(mode === "count" ? "in-setback" : "in-setback2", 30))),
       stagger,
+      anchor,
       trim:          document.getElementById("in-trim").checked,
       repeaters:     Math.max(0, Math.round(val("in-repeaters", 0)))
     };
@@ -192,14 +212,17 @@
     if (!p) return;
     mode    = p.mode === "spacing" ? "spacing" : "count";
     stagger = !!p.stagger;
+    anchor  = Array.isArray(p.anchor) && p.anchor.length === 2 ? p.anchor : null;
+    const setbackFt = Math.round(mToFt(p.setbackM ?? ftToM(30)));
     document.getElementById("in-count").value     = p.targetCount ?? 20;
-    document.getElementById("in-spacing").value   = Math.round(p.spacingM ?? 50);
+    document.getElementById("in-spacing").value   = Math.round(mToFt(p.spacingM ?? ftToM(200)));
     document.getElementById("in-bearing").value   = p.rowBearingDeg ?? 0;
-    document.getElementById("in-setback").value   = p.setbackM ?? 10;
-    document.getElementById("in-setback2").value  = p.setbackM ?? 10;
+    document.getElementById("in-setback").value   = setbackFt;
+    document.getElementById("in-setback2").value  = setbackFt;
     document.getElementById("in-trim").checked    = !!p.trim;
     document.getElementById("in-repeaters").value = p.repeaters ?? 0;
     syncModeUI();
+    syncAnchorUI();
   }
 
   function syncModeUI() {
@@ -219,6 +242,41 @@
     onInput();
   }
 
+  // ── CENTRE POINT ─────────────────────────────────────
+  function syncAnchorUI() {
+    const btn = document.getElementById("btn-anchor");
+    const out = document.getElementById("anchor-readout");
+    btn.textContent = picking ? "Cancel" : anchor ? "Clear" : "Set on map";
+    out.textContent = picking ? "Tap the map…"
+                    : anchor ? `${anchor[0].toFixed(5)}, ${anchor[1].toFixed(5)}`
+                    : "Centred in the block";
+    map.getContainer().style.cursor = picking ? "crosshair" : "";
+
+    anchorGroup.clearLayers();
+    if (anchor) {
+      L.marker(anchor, {
+        icon: L.divIcon({ className: "map-anchor", html: `<div class="centre-mark"></div>`, iconSize: [0, 0] }),
+        interactive: false, zIndexOffset: 1200
+      }).addTo(anchorGroup);
+    }
+  }
+
+  function anchorButton() {
+    if (picking)      { picking = false; syncAnchorUI(); return; }   // Cancel
+    if (anchor)       { anchor = null; syncAnchorUI(); regenerate(true); return; }   // Clear
+    picking = true;                                                  // Set on map
+    syncAnchorUI();
+    setStatus("Tap the map to put a trap there and build the grid around it.", "");
+  }
+
+  map.on("click", e => {
+    if (!picking) return;
+    anchor  = [e.latlng.lat, e.latlng.lng];
+    picking = false;
+    syncAnchorUI();
+    regenerate(true);
+  });
+
   // ── GENERATION ───────────────────────────────────────
   // Trap IDs continue the trap_node_NN series the Add trap page would suggest,
   // so the ID this pane reserves is the one that page offers anyway.
@@ -236,16 +294,15 @@
     if (edited && !explicit) return;          // keystrokes must not wipe hand edits
     const p = readParams();
 
+    const opts = { rowBearingDeg: p.rowBearingDeg, setbackM: p.setbackM, stagger: p.stagger, anchor: p.anchor };
     let pts, achieved;
     if (mode === "count") {
-      const r = solveSpacingForCount(boundary, p.targetCount,
-        { rowBearingDeg: p.rowBearingDeg, setbackM: p.setbackM, stagger: p.stagger });
+      const r = solveSpacingForCount(boundary, p.targetCount, opts);
       pts = r.points;
       achieved = r.spacingM;
       if (p.trim && pts.length > p.targetCount) pts = trimToCount(pts, p.targetCount);
     } else {
-      pts = generateLattice(boundary,
-        { spacingM: p.spacingM, rowBearingDeg: p.rowBearingDeg, setbackM: p.setbackM, stagger: p.stagger });
+      pts = generateLattice(boundary, { ...opts, spacingM: p.spacingM });
       achieved = p.spacingM;
     }
 
@@ -268,7 +325,7 @@
       setStatus("No traps fit. Try a smaller spacing or a smaller setback.", "error");
       return;
     }
-    const spacing = `${achieved.toFixed(0)} m`;
+    const spacing = ft(achieved);
     if (mode === "count" && points.length !== p.targetCount) {
       // The count is a step function of spacing, so an exact hit often does not
       // exist. Say so rather than quietly returning a different number.
@@ -344,7 +401,7 @@
       cell(`${points.length}`, "Planned traps") +
       cell(`${done}<small>of ${points.length}</small>`, "Placed so far") +
       cell(`${(area * ACRES_PER_M2).toFixed(1)}<small>ac</small>`, "Block area") +
-      cell(stats.min === null ? "—" : `${stats.min.toFixed(0)}<small>m</small>`, "Closest pair");
+      cell(stats.min === null ? "—" : `${Math.round(mToFt(stats.min)).toLocaleString()}<small>ft</small>`, "Closest pair");
     document.getElementById("point-count").textContent = points.length;
   }
 
@@ -364,7 +421,7 @@
           <span class="role-chip${p.role === "repeater" ? " is-repeater" : ""}">${p.role}</span>
         </div>
         <div class="plan-coords">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
-        ${at ? `<p class="drift-note">Placed ${drift.toFixed(0)} m from plan</p>` : ""}
+        ${at ? `<p class="drift-note">Placed ${ft(drift)} from plan</p>` : ""}
         <div class="plan-actions">
           <a class="btn btn-primary" href="${mapsDirUrl(p.lat, p.lng)}" target="_blank" rel="noopener">Navigate ↗</a>
           ${at
@@ -396,7 +453,7 @@
             <dl><dt>Trap ID</dt><dd>${esc(p.nodeId)}</dd>
                 <dt>Lat</dt><dd>${p.lat.toFixed(6)}</dd>
                 <dt>Lng</dt><dd>${p.lng.toFixed(6)}</dd>
-                ${at ? `<dt>Drift</dt><dd>${driftMeters(p).toFixed(0)} m</dd>` : ""}</dl>
+                ${at ? `<dt>Drift</dt><dd>${ft(driftMeters(p))}</dd>` : ""}</dl>
             <a class="pop-link" href="${mapsPinUrl(p.lat, p.lng)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>
           </div>`);
 
@@ -510,6 +567,7 @@
   (async function init() {
     loadInputs();
     syncModeUI();
+    syncAnchorUI();
     ["in-count", "in-spacing", "in-setback", "in-setback2", "in-bearing", "in-repeaters"]
       .forEach(id => document.getElementById(id).addEventListener("input", onInput));
 
