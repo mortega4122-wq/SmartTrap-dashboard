@@ -24,6 +24,7 @@
   <nav class="app-nav" aria-label="Dashboard">
     <a href="index.html">Map</a>
     <a href="orchard-setup.html" aria-current="page">Orchard setup</a>
+    <a href="layout.html">Layout</a>
     <a href="scan.html">Add trap</a>
   </nav>
   <div class="app-header-end">
@@ -40,6 +41,7 @@
   <button class="btn btn-outline btn-sm" type="button" id="btn-radius" aria-pressed="true" onclick="toggleRadius()">1-mile radius</button>
   <span class="toolbar-divider"></span>
   <span class="toolbar-status" id="status" role="status"></span>
+  <a class="btn btn-outline btn-sm" id="next-step" href="layout.html" hidden>Plan trap layout →</a>
   <button class="btn btn-primary btn-sm toolbar-end" type="button" id="btn-save" onclick="saveBoundary()" disabled>Save boundary</button>
 </div>
 
@@ -51,14 +53,6 @@
 
 <script>
   const PHEROMONE_RADIUS_M = 1609.34;
-
-  async function sbWrite(path, method, body, extra = {}) {
-    return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-      method,
-      headers: { ...(await authHeaders()), "Content-Type": "application/json", "Prefer": "return=minimal", ...extra },
-      body: JSON.stringify(body)
-    });
-  }
 
   async function fetchBoundary() {
     const rows = await sbGet("orchard_boundaries?select=id,polygon_points&order=id.asc&limit=1");
@@ -147,6 +141,8 @@
         ? await sbWrite(`orchard_boundaries?id=eq.${existing.id}`, "PATCH", payload)
         : await sbWrite("orchard_boundaries", "POST", { name: "Orchard 1", ...payload });
       setStatus(res.ok ? `Saved. ${clickPoints.length} points.` : `Couldn't save (${res.status}).`, res.ok ? "success" : "error");
+      // The boundary is only step one; point at the step that uses it.
+      if (res.ok) document.getElementById("next-step").hidden = false;
     } catch (e) { setStatus("Couldn't save: " + e.message, "error"); }
     btn.textContent = "Save boundary";
     btn.disabled = false;

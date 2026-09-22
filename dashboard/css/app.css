@@ -321,6 +321,7 @@ button, input, select, textarea { font: inherit; letter-spacing: inherit; }
 .phone-panel.is-scroll { overflow-y: auto; background: var(--color-surface); }
 .phone-panel #map-view { position: absolute; inset: 0; }
 .phone-footer { padding: 4px 20px 28px; }
+.phone-footer .btn + .btn { margin-top: 8px; }
 
 /* ── CONTENT PAGES (trap detail, add a trap) ───────────── */
 .page { width: 100%; max-width: 1240px; margin: 0 auto; padding: 28px 24px 64px; }
@@ -383,6 +384,55 @@ button, input, select, textarea { font: inherit; letter-spacing: inherit; }
 .toolbar-status.is-success { color: var(--color-primary); }
 .toolbar-status.is-error { color: var(--color-error); }
 .toolbar-end { margin-left: auto; }
+
+/* ── TRAP LAYOUT ───────────────────────────────────────── */
+/* A planned point isn't installed yet, so it reads as hollow and dashed against
+   the solid red pins of traps that actually exist. */
+.pin.is-plan {
+  background: rgba(255, 255, 255, 0.94); border: 2px dashed var(--color-forest);
+  color: var(--color-forest); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+/* Square, like the rest of the site's corners, so a repeater reads as a different
+   kind of device rather than a differently coloured trap. */
+.pin.is-plan.is-repeater { border-radius: 0; background: var(--color-accent-light); }
+.pin.is-plan.is-done { border-style: solid; opacity: 0.45; }
+.key-chip .pin.is-plan { border-width: 1.5px; }
+.key-drift { width: 22px; height: 0; border-top: 2px dotted #fff; }
+
+/* Where a trap actually went in, against where it was planned. */
+.drift-mark {
+  position: absolute; left: 0; top: 0; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%; background: #dc2626; border: 1.5px solid #fff;
+}
+
+.layout-controls { padding: 16px 12px 4px; display: grid; gap: 14px; }
+.layout-controls .field-row { grid-template-columns: 1fr 1fr; margin-top: 0; }
+.layout-controls .input { min-height: 38px; }
+.layout-check { display: flex; align-items: center; gap: 9px; font-size: 14px; }
+.layout-check input { width: 16px; height: 16px; }
+
+/* Segmented control, same construction as .heat-buttons. */
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+.seg .btn { min-height: 34px; padding: 0 8px; font-size: 10px; }
+.seg .btn + .btn { margin-left: -1px; }
+.seg .btn[aria-pressed="true"] { position: relative; z-index: 1; }
+
+.plan-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.plan-actions .btn { min-height: 30px; padding: 0 10px; font-size: 10px; }
+.plan-coords { margin-top: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.role-chip {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--color-muted); padding: 2px 7px; border: 1px solid var(--color-line);
+}
+.role-chip.is-repeater { color: var(--color-accent); border-color: var(--color-accent-light); background: #f2f8ec; }
+.trap-card.is-done { opacity: 0.62; }
+.drift-note { margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--color-muted); }
+
+.layout-empty { padding: 28px 20px; }
+.layout-empty p { margin-top: 8px; color: var(--color-muted); font-size: 14px; }
+.layout-empty .btn { margin-top: 16px; }
+.export-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 12px 24px; }
+.export-row .btn { flex: 1 1 auto; }
 
 /* ── ADD A TRAP ────────────────────────────────────────── */
 .step { margin-top: 24px; padding: 20px; border: 1px solid var(--color-line); }

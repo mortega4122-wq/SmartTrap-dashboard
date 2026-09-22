@@ -40,6 +40,17 @@ async function sbGet(path) {
   return res.json();
 }
 
+// Returns the raw Response so callers can tell 409 from 404 from a network error.
+// "return=minimal" means a POST does NOT hand back the new row's id: re-read the
+// table after an insert rather than assuming you have one.
+async function sbWrite(path, method, body, extra = {}) {
+  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method,
+    headers: { ...(await authHeaders()), "Content-Type": "application/json", "Prefer": "return=minimal", ...extra },
+    body: JSON.stringify(body)
+  });
+}
+
 // { node_id: [lat, lng] }, the order Leaflet expects, or null when the row has no coordinates.
 async function fetchNodeLocations() {
   const rows = await sbGet("node_locations?select=node_id,latitude,longitude");
@@ -49,6 +60,21 @@ async function fetchNodeLocations() {
     out[r.node_id] = Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : null;
   });
   return out;
+}
+
+// The account's orchard boundary, as orchard-setup.html saves it. The app uses a
+// single boundary per account, so this takes the oldest row and ignores the rest.
+async function fetchBoundaryRow() {
+  const rows = await sbGet("orchard_boundaries?select=id,polygon_points&order=id.asc&limit=1");
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+}
+
+// [[lat, lng], ...] in the order Leaflet expects, or [] when there's no usable
+// boundary. Older rows stored {latitude, longitude} instead of {lat, lng}.
+function boundaryPoints(row) {
+  const pts = row && row.polygon_points;
+  if (!Array.isArray(pts) || pts.length < 3) return [];
+  return pts.map(p => [p.lat ?? p.latitude, p.lng ?? p.longitude]);
 }
 
 async function fetchRoverHistory() {
@@ -218,6 +244,8 @@ function trapPinIcon(label, opts = {}) {
   if (opts.missed) cls.push("is-missed");
   if (opts.value !== undefined) cls.push("is-value");
   if (opts.hot) cls.push("is-hot");
+  if (opts.plan) cls.push("is-plan");           // planned, not installed yet
+  if (opts.repeater) cls.push("is-repeater");
   const style = opts.fill ? ` style="background:${opts.fill};color:${opts.ink}"` : "";
   const text  = opts.value !== undefined ? opts.value : label;
   return L.divIcon({ className: "map-anchor", html: `<div class="${cls.join(" ")}"${style}>${esc(text)}</div>`, iconSize: [0, 0], popupAnchor: [0, -16] });
@@ -290,6 +318,14 @@ function mapKeyItems(kind) {
       <li>${chip('<span class="key-boundary"></span>')}Orchard boundary</li>
       <li>${chip('<span class="key-radius"></span>')}1-mile pheromone radius</li>
       <li>${chip('<span class="pin">1</span>')}Trap</li>`;
+  }
+  if (kind === "layout") {
+    return `
+      <li>${chip('<span class="key-boundary"></span>')}Orchard boundary</li>
+      <li>${chip('<span class="pin is-plan">1</span>')}Planned trap</li>
+      <li>${chip('<span class="pin is-plan is-repeater">1</span>')}Planned repeater</li>
+      <li>${chip('<span class="pin">1</span>')}Trap already deployed</li>
+      <li>${chip('<span class="key-drift"></span>')}Planned → where it went in</li>`;
   }
   return `
     <li>${chip('<span class="pin">1</span>')}Trap</li>

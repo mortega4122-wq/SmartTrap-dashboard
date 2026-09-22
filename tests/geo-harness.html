@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>geo.js tests — SmartTrap</title>
+<!-- Assertions for dashboard/js/geo.js: the metres projection, polygon area, the
+     trap layout generator, and the count<->spacing solver. geo.js has no Supabase,
+     Leaflet, or DOM dependency, so this runs straight from the file system: open
+     this file in a browser and read the tab title (OK n/n, or FAIL n). The project
+     has no test runner, so this is deliberately a plain page with no dependencies. -->
+<style>body{font:13px monospace;white-space:pre-wrap;padding:12px}.p{color:#0a0}.f{color:#c00;font-weight:bold}</style>
+</head><body>
+<div id="out"></div>
+<script src="../dashboard/js/geo.js"></script>
+<script>
+const out = document.getElementById("out");
+let pass = 0, fail = 0;
+function ok(name, cond, detail) {
+  if (cond) { pass++; out.innerHTML += `<span class="p">PASS</span> ${name}${detail?" — "+detail:""}\n`; }
+  else      { fail++; out.innerHTML += `<span class="f">FAIL</span> ${name}${detail?" — "+detail:""}\n`; }
+}
+function near(a, b, tol) { return Math.abs(a - b) <= tol; }
+
+// Demo orchard boundary, verbatim from supabase/demo-data.sql:63-66
+const demo = [
+  [37.35722, -120.94012], [37.35725, -120.93392],
+  [37.35478, -120.93388], [37.35476, -120.94008]
+];
+
+// ── 1. Area ──
+const area = polygonAreaM2(demo);
+ok("area of demo block", near(area, 152000, 3000), `${area.toFixed(0)} m² = ${(area*ACRES_PER_M2).toFixed(1)} acres`);
+ok("area of a degenerate ring is 0", polygonAreaM2([[0,0],[1,1],[2,2]]) < 1e-6 || polygonAreaM2([[0,0],[1,1],[2,2]]) === 0);
+
+// ── 2. Projection round trip ──
+const proj = localProjection(37.356, -120.937);
+let worst = 0;
+for (const [la, ln] of demo) {
+  const [la2, ln2] = proj.toLatLng(...proj.toXY(la, ln));
+  worst = Math.max(worst, Math.abs(la2-la), Math.abs(ln2-ln));
+}
+ok("projection round-trips", worst < 1e-9, `max err ${worst.toExponential(2)}°`);
+
+// ── 3. Scale factors, against an independent formula ──
+// The standard series for metres per degree (Astronomical Almanac). This is a
+// real check of the ellipsoid maths; comparing to the SPHERICAL haversine is not,
+// because that is itself ~0.2% off on a north-south line at this latitude.
+function seriesMPerDeg(latDeg) {
+  const p = latDeg * Math.PI / 180;
+  return [111132.92 - 559.82*Math.cos(2*p) + 1.175*Math.cos(4*p) - 0.0023*Math.cos(6*p),
+          111412.84*Math.cos(p) - 93.5*Math.cos(3*p) + 0.118*Math.cos(5*p)];
+}
+for (const lat of [0, 37.356, 60]) {
+  const [ky, kx] = metresPerDegree(lat), [sy, sx] = seriesMPerDeg(lat);
+  ok(`metres/degree at ${lat}°`, Math.abs(ky-sy) < 1 && Math.abs(kx-sx) < 1,
+     `lat ${ky.toFixed(1)} vs ${sy.toFixed(1)}, lng ${kx.toFixed(1)} vs ${sx.toFixed(1)}`);
+}
+// The property that actually matters: a square in metre-space must be a square on
+// the ground. (The two scale factors are NOT equal after dividing out cos φ — the
+// meridian and parallel radii genuinely differ by ~0.43% on an ellipsoid — so the
+// check has to be end-to-end, in real ground distance.)
+const sq100 = [[0,0],[100,0],[100,100],[0,100]].map(([x,y]) => proj.toLatLng(x,y));
+const side = (a,b) => haversineMeters(a[0],a[1],b[0],b[1]);
+const sides = [side(sq100[0],sq100[1]), side(sq100[1],sq100[2]), side(sq100[2],sq100[3]), side(sq100[3],sq100[0])];
+ok("a 100 m square in metre-space is square on the ground",
+   sides.every(d => Math.abs(d - 100) < 0.35),
+   sides.map(d => d.toFixed(3)).join(" / ") + " m");
+// Haversine is a separate, spherical approximation: agree loosely, never exactly.
+const [x1,y1] = proj.toXY(37.356, -120.937), [x2,y2] = proj.toXY(37.365, -120.937);
+const dProj = Math.hypot(x2-x1, y2-y1), dHav = haversineMeters(37.356,-120.937,37.365,-120.937);
+ok("projected vs spherical haversine agree to 0.3%", Math.abs(dProj-dHav)/dHav < 0.003,
+   `${dProj.toFixed(1)} m vs ${dHav.toFixed(1)} m`);
+
+// ── 4. Lattice: everything inside, setback honoured ──
+const g100 = generateLattice(demo, { spacingM: 100, setbackM: 0, rowBearingDeg: 0 });
+ok("100 m lattice returns points", g100.length > 0, `${g100.length} points`);
+const ring = demo.map(([la,ln]) => proj.toXY(la, ln));
+ok("every point is inside the boundary", g100.every(p => { const [px,py]=proj.toXY(p.lat,p.lng); return pointInRing(px,py,ring); }));
+ok("labels are P01..Pnn in order", g100.every((p,i) => p.n===i+1 && p.label==="P"+String(i+1).padStart(2,"0")));
+
+const g50 = generateLattice(demo, { spacingM: 60, setbackM: 50, rowBearingDeg: 0 });
+ok("setback 50 m is honoured", g50.length > 0 && g50.every(p => p.edgeM >= 50 - 1e-6),
+   `${g50.length} points, min edge ${Math.min(...g50.map(p=>p.edgeM)).toFixed(1)} m`);
+
+// ── 5. Nearest-neighbour spacing matches the request ──
+const sq = generateLattice(demo, { spacingM: 80, setbackM: 0, rowBearingDeg: 0, stagger: false });
+const st = generateLattice(demo, { spacingM: 80, setbackM: 0, rowBearingDeg: 0, stagger: true });
+const sqS = spacingStats(sq), stS = spacingStats(st);
+ok("square lattice nearest neighbour = spacing", near(sqS.min, 80, 0.5), `min ${sqS.min.toFixed(2)} m`);
+ok("quincunx nearest neighbour = spacing", near(stS.min, 80, 0.5), `min ${stS.min.toFixed(2)} m`);
+ok("quincunx fits more traps at the same spacing", st.length > sq.length, `${st.length} vs ${sq.length}`);
+
+// ── 6. Count solver ──
+for (const target of [20, 25, 40]) {
+  const r = solveSpacingForCount(demo, target, { setbackM: 0, rowBearingDeg: 0 });
+  ok(`solve for ${target} traps`, Math.abs(r.points.length - target) <= 2,
+     `got ${r.points.length} at ${r.spacingM.toFixed(1)} m`);
+}
+// The √3/2 density relation is asymptotic, so check it on a block big enough for
+// boundary effects to wash out — on the 4x5 lattice of the demo block they dominate.
+const bigBlock = [[37.34,-120.96],[37.34,-120.92],[37.38,-120.92],[37.38,-120.96]];
+const bSq = solveSpacingForCount(bigBlock, 400, { stagger: false });
+const bSt = solveSpacingForCount(bigBlock, 400, { stagger: true });
+ok("quincunx needs ~7.5% wider spacing for the same count",
+   Math.abs(bSt.spacingM / bSq.spacingM - 1.0746) < 0.05,
+   `${bSt.spacingM.toFixed(1)} m vs ${bSq.spacingM.toFixed(1)} m = ${(bSt.spacingM/bSq.spacingM).toFixed(4)}x`);
+const rSq = solveSpacingForCount(demo, 20, { stagger: false });
+// The solver must land on the WIDEST spacing that still fits the count: nudging
+// it wider has to lose a trap.
+const wider = generateLattice(demo, { setbackM: 0, rowBearingDeg: 0, spacingM: rSq.spacingM * 1.05 });
+ok("solver returns the widest spacing for the count", wider.length < rSq.points.length,
+   `${rSq.points.length} at ${rSq.spacingM.toFixed(1)} m → ${wider.length} at +5%`);
+
+// Count must never RISE as spacing widens. A row landing exactly on the boundary
+// used to make this jump around; EDGE_EPS_M is what makes it well behaved.
+let monotone = true, prev = Infinity, worstJump = 0;
+for (let s = 40; s <= 120; s += 0.5) {
+  const n = generateLattice(demo, { spacingM: s, setbackM: 0, rowBearingDeg: 0 }).length;
+  if (n > prev) monotone = false;
+  worstJump = Math.max(worstJump, prev === Infinity ? 0 : prev - n);
+  prev = n;
+}
+ok("count is monotonic in spacing", monotone, `largest single drop ${worstJump} traps`);
+
+// ── 7. Trim to an exact count ──
+const big = generateLattice(demo, { spacingM: 70, setbackM: 0 });
+const trimmed = trimToCount(big.slice(), 20);
+ok("trim hits the exact count", trimmed.length === 20, `${big.length} → 20`);
+ok("trim renumbers", trimmed.every((p,i)=>p.n===i+1));
+ok("trim drops the most marginal points",
+   Math.min(...trimmed.map(p=>p.edgeM)) >= Math.min(...big.map(p=>p.edgeM)));
+
+// ── 8. Determinism ──
+const a1 = JSON.stringify(generateLattice(demo,{spacingM:75,setbackM:10,rowBearingDeg:33,stagger:true}).map(p=>[p.lat,p.lng]));
+const a2 = JSON.stringify(generateLattice(demo,{spacingM:75,setbackM:10,rowBearingDeg:33,stagger:true}).map(p=>[p.lat,p.lng]));
+ok("generation is deterministic", a1 === a2);
+
+// ── 9. Rotation ──
+const r0 = generateLattice(demo,{spacingM:90,setbackM:0,rowBearingDeg:0});
+const r90 = generateLattice(demo,{spacingM:90,setbackM:0,rowBearingDeg:90});
+ok("rotating a rectangle 90° keeps the count", r0.length === r90.length, `${r0.length} vs ${r90.length}`);
+ok("rotating actually moves the points", JSON.stringify(r0.map(p=>p.lat)) !== JSON.stringify(r90.map(p=>p.lat)));
+ok("dominantBearingDeg finds the long (E-W) edge", near(dominantBearingDeg(demo), 90, 2), `${dominantBearingDeg(demo)}°`);
+
+// ── 10. Concave L-shape: nothing in the notch ──
+const L = [[37.3560,-120.9400],[37.3560,-120.9340],[37.3575,-120.9340],
+           [37.3575,-120.9370],[37.3590,-120.9370],[37.3590,-120.9400]];
+const gl = generateLattice(L, { spacingM: 40, setbackM: 0 });
+const projL = localProjection(...verticesMean(L));
+const ringL = L.map(([la,ln]) => projL.toXY(la,ln));
+ok("concave: points generated", gl.length > 0, `${gl.length} points`);
+ok("concave: nothing lands in the notch",
+   gl.every(p => { const [px,py]=projL.toXY(p.lat,p.lng); return pointInRing(px,py,ringL); }));
+
+// ── 11. Degenerate and abusive input ──
+ok("collinear boundary returns []", generateLattice([[0,0],[0,1],[0,2]], {spacingM:10}).length === 0);
+ok("two points returns []", generateLattice([[0,0],[0,1]], {spacingM:10}).length === 0);
+ok("zero spacing returns []", generateLattice(demo, {spacingM:0}).length === 0);
+ok("null boundary returns []", generateLattice(null, {spacingM:10}).length === 0);
+const t0 = performance.now();
+const tiny = generateLattice(demo, { spacingM: 1, setbackM: 0 });
+const dt = performance.now() - t0;
+ok("1 m spacing hits MAX_CANDIDATES and bails fast", tiny.length === 0 && dt < 50, `${dt.toFixed(1)} ms`);
+
+// ── 12. Closed ring (duplicated last vertex) ──
+const closed = [...demo, demo[0]];
+ok("a closed ring gives the same area", near(polygonAreaM2(closed), area, 1));
+ok("a closed ring gives the same lattice",
+   generateLattice(closed,{spacingM:90,setbackM:0}).length === r0.length);
+
+// ── 13. Self-intersection detection ──
+ok("simple ring is not flagged", ringSelfIntersects(demo) === false);
+ok("bow-tie ring is flagged", ringSelfIntersects([[0,0],[1,1],[1,0],[0,1]]) === true);
+
+// ── 14. Repeater spread ──
+const pts = generateLattice(demo, { spacingM: 70, setbackM: 0 });
+const idx = pickSpread(pts, 4);
+ok("pickSpread returns the asked-for count", idx.length === 4, `of ${pts.length}`);
+ok("pickSpread returns distinct indices", new Set(idx).size === 4);
+const spreadMin = (() => { let m=Infinity; for(let i=0;i<idx.length;i++) for(let j=i+1;j<idx.length;j++)
+  m=Math.min(m, Math.hypot(pts[idx[i]].x-pts[idx[j]].x, pts[idx[i]].y-pts[idx[j]].y)); return m; })();
+const everyNth = [0,1,2,3].map(k => pts[Math.floor(k*pts.length/4)]);
+const nthMin = (() => { let m=Infinity; for(let i=0;i<4;i++) for(let j=i+1;j<4;j++)
+  m=Math.min(m, Math.hypot(everyNth[i].x-everyNth[j].x, everyNth[i].y-everyNth[j].y)); return m; })();
+ok("pickSpread beats every-Nth on separation", spreadMin > nthMin,
+   `${spreadMin.toFixed(0)} m vs ${nthMin.toFixed(0)} m`);
+ok("pickSpread caps at the available points", pickSpread(pts, 9999).length === pts.length);
+
+out.innerHTML += `\n${fail === 0 ? '<span class="p">ALL PASS</span>' : '<span class="f">FAILURES</span>'} — ${pass} passed, ${fail} failed\n`;
+document.title = fail === 0 ? `OK ${pass}/${pass}` : `FAIL ${fail}`;
+</script>
+</body></html>

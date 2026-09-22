@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Layout — SmartTrap</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script>requireLogin();</script>
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="css/app.css">
+  <script src="js/traps.js"></script>
+  <script src="js/geo.js"></script>
+</head>
+<!-- No phone redirect here, unlike index.html: reading the point list in the
+     field IS the phone use case. is-desktop-map lets the page scroll when narrow. -->
+<body class="app-fixed is-desktop-map">
+
+<header class="app-header">
+  <a class="wordmark" href="../index.html" title="VerdanTech website"><span>Verdan</span><span class="wordmark-tech">Tech</span></a>
+  <nav class="app-nav" aria-label="Dashboard">
+    <a href="index.html">Map</a>
+    <a href="orchard-setup.html">Orchard setup</a>
+    <a href="layout.html" aria-current="page">Layout</a>
+    <a href="scan.html">Add trap</a>
+  </nav>
+  <div class="app-header-end">
+    <button class="btn btn-outline btn-sm" type="button" onclick="signOut()">Sign out</button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <span class="label">Set by</span>
+  <div class="seg" role="group" aria-label="Set the layout by">
+    <button class="btn btn-outline" type="button" id="mode-count"   aria-pressed="true"  onclick="setMode('count')">Trap count</button>
+    <button class="btn btn-outline" type="button" id="mode-spacing" aria-pressed="false" onclick="setMode('spacing')">Spacing</button>
+  </div>
+  <span class="toolbar-divider"></span>
+  <button class="btn btn-outline btn-sm" type="button" id="btn-generate" onclick="regenerate(true)">Generate</button>
+  <span class="toolbar-divider"></span>
+  <span class="toolbar-status" id="status" role="status"></span>
+  <button class="btn btn-primary btn-sm toolbar-end" type="button" id="btn-save" onclick="saveLayout()" disabled>Save layout</button>
+</div>
+
+<main class="map-layout">
+  <aside class="sidebar" aria-label="Planned traps">
+
+    <div class="layout-empty" id="empty-state" hidden>
+      <h2 class="section-title">Draw your orchard first</h2>
+      <p>This pane spreads traps evenly inside your orchard boundary. Mark the boundary in Orchard setup, then come back.</p>
+      <a class="btn btn-primary" href="orchard-setup.html">Go to Orchard setup</a>
+    </div>
+
+    <div id="planner" hidden>
+      <section class="summary">
+        <div class="summary-head"><span class="label summary-place">This block</span></div>
+        <div class="stat-grid" id="summary"></div>
+      </section>
+
+      <div class="layout-controls">
+        <div class="field-row" id="row-count">
+          <div class="field">
+            <label class="label" for="in-count">Traps</label>
+            <input class="input num" type="number" id="in-count" min="1" max="200" step="1" value="20"/>
+          </div>
+          <div class="field">
+            <label class="label" for="in-setback">Edge setback (m)</label>
+            <input class="input num" type="number" id="in-setback" min="0" max="500" step="1" value="10"/>
+          </div>
+        </div>
+        <div class="field-row" id="row-spacing" hidden>
+          <div class="field">
+            <label class="label" for="in-spacing">Spacing (m)</label>
+            <input class="input num" type="number" id="in-spacing" min="5" max="500" step="1" value="50"/>
+          </div>
+          <div class="field">
+            <label class="label" for="in-setback2">Edge setback (m)</label>
+            <input class="input num" type="number" id="in-setback2" min="0" max="500" step="1" value="10"/>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="in-bearing">Row direction (°)</label>
+          <div class="id-row">
+            <input class="input num" type="number" id="in-bearing" min="0" max="179" step="1" value="0"/>
+            <button class="btn btn-outline" type="button" onclick="alignToBlock()">Align to block</button>
+          </div>
+          <p class="hint">Turn the grid to run along your tree rows. 0° = rows run north–south.</p>
+        </div>
+
+        <div class="field">
+          <span class="label">Pattern</span>
+          <div class="seg" role="group" aria-label="Grid pattern">
+            <button class="btn btn-outline" type="button" id="pat-square"  aria-pressed="true"  onclick="setPattern(false)">Square</button>
+            <button class="btn btn-outline" type="button" id="pat-stagger" aria-pressed="false" onclick="setPattern(true)">Staggered</button>
+          </div>
+        </div>
+
+        <label class="layout-check" id="trim-wrap">
+          <input type="checkbox" id="in-trim" onchange="onInput()"/>
+          Trim to exactly this many traps
+        </label>
+
+        <div class="field">
+          <label class="label" for="in-repeaters">Repeaters</label>
+          <div class="id-row">
+            <input class="input num" type="number" id="in-repeaters" min="0" max="50" step="1" value="0"/>
+            <button class="btn btn-outline" type="button" onclick="autoRepeaters()">Spread out</button>
+          </div>
+          <p class="hint">Or tap any point below to switch it between node and repeater.</p>
+        </div>
+      </div>
+
+      <div class="list-head"><span class="label">Planned points</span><span class="label num" id="point-count"></span></div>
+      <div class="trap-list" id="plan-list"></div>
+      <div class="export-row">
+        <button class="btn btn-outline btn-sm" type="button" onclick="copyAll()">Copy all</button>
+        <button class="btn btn-outline btn-sm" type="button" onclick="exportCSV()">CSV</button>
+        <button class="btn btn-outline btn-sm" type="button" onclick="exportGPX()">GPX</button>
+      </div>
+    </div>
+  </aside>
+
+  <section class="map-area" aria-label="Layout map">
+    <div id="map-view"></div>
+    <p class="map-notice" id="notice" hidden></p>
+    <div class="map-panel key" id="map-key"></div>
+  </section>
+</main>
+
+<script>
+  const BOUNDARY_COLOR = "#FFC72C";
+  const INPUT_KEY      = "smarttrap-layout-inputs";
+
+  // ── MAP ──────────────────────────────────────────────
+  const map = L.map("map-view", { zoomControl: true }).setView(DEFAULT_CENTER, 15);
+  addImagery(map);
+  setupMapKey(document.getElementById("map-key"), "layout", "smarttrap-layout-key", true);
+  const boundaryGroup = L.layerGroup().addTo(map);
+  const planGroup     = L.layerGroup().addTo(map);
+
+  // ── STATE ────────────────────────────────────────────
+  let boundary  = [];      // [[lat, lng], ...]
+  let points    = [];      // [{n, label, lat, lng, x, y, edgeM, role, nodeId}]
+  let deployed  = {};      // node_id -> [lat, lng], every trap that really exists
+  let layoutRow = null;    // the saved trap_layouts row, if any
+  let mode      = "count";
+  let stagger   = false;
+  // Once a point has been toggled, moved, or removed by hand, regenerating would
+  // throw that work away — so it stops happening on every keystroke.
+  let edited    = false;
+  let storageReady = true;
+
+  function setStatus(msg, kind) {
+    const el = document.getElementById("status");
+    el.textContent = msg;
+    el.className   = "toolbar-status" + (kind ? ` is-${kind}` : "");
+  }
+
+  function setNotice(msg) {
+    const el = document.getElementById("notice");
+    el.hidden = !msg;
+    if (msg) el.textContent = msg;
+  }
+
+  // ── PARAMETERS ───────────────────────────────────────
+  const val = (id, fallback) => {
+    const n = parseFloat(document.getElementById(id).value);
+    return Number.isFinite(n) ? n : fallback;
+  };
+
+  function readParams() {
+    return {
+      mode,
+      targetCount:   Math.max(1, Math.min(200, Math.round(val("in-count", 20)))),
+      spacingM:      Math.max(5, val("in-spacing", 50)),
+      rowBearingDeg: ((Math.round(val("in-bearing", 0)) % 180) + 180) % 180,
+      setbackM:      Math.max(0, val(mode === "count" ? "in-setback" : "in-setback2", 10)),
+      stagger,
+      trim:          document.getElementById("in-trim").checked,
+      repeaters:     Math.max(0, Math.round(val("in-repeaters", 0)))
+    };
+  }
+
+  function applyParams(p) {
+    if (!p) return;
+    mode    = p.mode === "spacing" ? "spacing" : "count";
+    stagger = !!p.stagger;
+    document.getElementById("in-count").value     = p.targetCount ?? 20;
+    document.getElementById("in-spacing").value   = Math.round(p.spacingM ?? 50);
+    document.getElementById("in-bearing").value   = p.rowBearingDeg ?? 0;
+    document.getElementById("in-setback").value   = p.setbackM ?? 10;
+    document.getElementById("in-setback2").value  = p.setbackM ?? 10;
+    document.getElementById("in-trim").checked    = !!p.trim;
+    document.getElementById("in-repeaters").value = p.repeaters ?? 0;
+    syncModeUI();
+  }
+
+  function syncModeUI() {
+    document.getElementById("mode-count").setAttribute("aria-pressed", String(mode === "count"));
+    document.getElementById("mode-spacing").setAttribute("aria-pressed", String(mode === "spacing"));
+    document.getElementById("row-count").hidden   = mode !== "count";
+    document.getElementById("row-spacing").hidden = mode !== "spacing";
+    document.getElementById("trim-wrap").hidden   = mode !== "count";
+    document.getElementById("pat-square").setAttribute("aria-pressed", String(!stagger));
+    document.getElementById("pat-stagger").setAttribute("aria-pressed", String(stagger));
+  }
+
+  function setMode(m)      { mode = m; syncModeUI(); onInput(); }
+  function setPattern(s)   { stagger = s; syncModeUI(); onInput(); }
+  function alignToBlock()  {
+    document.getElementById("in-bearing").value = dominantBearingDeg(boundary);
+    onInput();
+  }
+
+  // ── GENERATION ───────────────────────────────────────
+  // Trap IDs continue the trap_node_NN series the Add trap page would suggest,
+  // so the ID this pane reserves is the one that page offers anyway.
+  function nextIdBase() {
+    let max = 0;
+    Object.keys(deployed).forEach(id => {
+      const m = String(id).match(/(\d+)$/);
+      if (m) max = Math.max(max, parseInt(m[1], 10));
+    });
+    return max;
+  }
+
+  function regenerate(explicit = false) {
+    if (!boundary.length) return;
+    if (edited && !explicit) return;          // keystrokes must not wipe hand edits
+    const p = readParams();
+
+    let pts, achieved;
+    if (mode === "count") {
+      const r = solveSpacingForCount(boundary, p.targetCount,
+        { rowBearingDeg: p.rowBearingDeg, setbackM: p.setbackM, stagger: p.stagger });
+      pts = r.points;
+      achieved = r.spacingM;
+      if (p.trim && pts.length > p.targetCount) pts = trimToCount(pts, p.targetCount);
+    } else {
+      pts = generateLattice(boundary,
+        { spacingM: p.spacingM, rowBearingDeg: p.rowBearingDeg, setbackM: p.setbackM, stagger: p.stagger });
+      achieved = p.spacingM;
+    }
+
+    const base = nextIdBase();
+    points = pts.map((q, i) => ({
+      ...q, role: "node",
+      nodeId: `trap_node_${String(base + i + 1).padStart(2, "0")}`
+    }));
+    if (p.repeaters > 0) applyRepeaters(p.repeaters);
+
+    edited = false;
+    document.getElementById("btn-save").disabled = points.length === 0 || !storageReady;
+    reportGeneration(p, achieved);
+    saveInputs();
+    render();
+  }
+
+  function reportGeneration(p, achieved) {
+    if (!points.length) {
+      setStatus("No traps fit. Try a smaller spacing or a smaller setback.", "error");
+      return;
+    }
+    const spacing = `${achieved.toFixed(0)} m`;
+    if (mode === "count" && points.length !== p.targetCount) {
+      // The count is a step function of spacing, so an exact hit often does not
+      // exist. Say so rather than quietly returning a different number.
+      setStatus(`${points.length} traps at ${spacing} — the closest this block allows to ${p.targetCount}.`, "");
+    } else {
+      setStatus(`${points.length} traps at ${spacing}.`, "success");
+    }
+  }
+
+  function applyRepeaters(count) {
+    points.forEach(p => { p.role = "node"; });
+    pickSpread(points, count).forEach(i => { points[i].role = "repeater"; });
+  }
+
+  function autoRepeaters() {
+    if (!points.length) return;
+    applyRepeaters(Math.max(0, Math.round(val("in-repeaters", 0))));
+    markEdited();
+    render();
+  }
+
+  function markEdited() {
+    edited = true;
+    document.getElementById("btn-save").disabled = !storageReady;
+    setStatus("Edited by hand. Generate to rebuild the grid from scratch.", "");
+  }
+
+  function toggleRole(n) {
+    const p = points.find(q => q.n === n);
+    if (!p) return;
+    p.role = p.role === "repeater" ? "node" : "repeater";
+    markEdited();
+    render();
+  }
+
+  function removePoint(n) {
+    points = renumberPoints(points.filter(q => q.n !== n));
+    markEdited();
+    render();
+  }
+
+  let inputTimer = null;
+  function onInput() {
+    clearTimeout(inputTimer);
+    inputTimer = setTimeout(() => regenerate(false), 150);
+  }
+
+  // ── RENDER ───────────────────────────────────────────
+  const mapsDirUrl = (lat, lng) => `https://www.google.com/maps/dir/?api=1&destination=${lat.toFixed(6)},${lng.toFixed(6)}`;
+  const mapsPinUrl = (lat, lng) => `https://www.google.com/maps/search/?api=1&query=${lat.toFixed(6)},${lng.toFixed(6)}`;
+
+  // A planned point is "done" once a trap with its reserved ID really exists.
+  // That needs no extra bookkeeping: node_locations already is the record.
+  const deployedAt = p => deployed[p.nodeId] || null;
+
+  function driftMeters(p) {
+    const at = deployedAt(p);
+    return at ? haversineMeters(p.lat, p.lng, at[0], at[1]) : null;
+  }
+
+  function render() {
+    renderSummary();
+    renderList();
+    renderMap();
+  }
+
+  function renderSummary() {
+    const area  = polygonAreaM2(boundary);
+    const stats = spacingStats(points);
+    const done  = points.filter(deployedAt).length;
+    const cell  = (v, label) => `<div class="stat"><div class="stat-value">${v}</div><div class="label">${label}</div></div>`;
+    document.getElementById("summary").innerHTML =
+      cell(`${points.length}`, "Planned traps") +
+      cell(`${done}<small>of ${points.length}</small>`, "Placed so far") +
+      cell(`${(area * ACRES_PER_M2).toFixed(1)}<small>ac</small>`, "Block area") +
+      cell(stats.min === null ? "—" : `${stats.min.toFixed(0)}<small>m</small>`, "Closest pair");
+    document.getElementById("point-count").textContent = points.length;
+  }
+
+  function renderList() {
+    const list = document.getElementById("plan-list");
+    if (!points.length) {
+      list.innerHTML = `<p class="list-message">No points yet. Set a trap count and press Generate.</p>`;
+      return;
+    }
+    list.innerHTML = points.map(p => {
+      const at    = deployedAt(p);
+      const drift = driftMeters(p);
+      return `
+      <div class="trap-card${at ? " is-done" : ""}" data-point="${p.n}">
+        <div class="trap-card-top">
+          <span class="trap-id">${esc(p.label)} · ${esc(p.nodeId)}</span>
+          <span class="role-chip${p.role === "repeater" ? " is-repeater" : ""}">${p.role}</span>
+        </div>
+        <div class="plan-coords">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+        ${at ? `<p class="drift-note">Placed ${drift.toFixed(0)} m from plan</p>` : ""}
+        <div class="plan-actions">
+          <a class="btn btn-primary" href="${mapsDirUrl(p.lat, p.lng)}" target="_blank" rel="noopener">Navigate ↗</a>
+          ${at
+            ? `<a class="btn btn-outline" href="detail.html?node=${encodeURIComponent(p.nodeId)}">Open trap</a>`
+            : `<a class="btn btn-outline" href="scan.html?node=${encodeURIComponent(p.nodeId)}">Add this trap</a>`}
+          <button class="btn btn-outline" type="button" onclick="toggleRole(${p.n})">${p.role === "repeater" ? "Make node" : "Make repeater"}</button>
+          <button class="btn btn-outline" type="button" onclick="removePoint(${p.n})">Remove</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderMap() {
+    planGroup.clearLayers();
+    points.forEach(p => {
+      const at = deployedAt(p);
+      L.marker([p.lat, p.lng], {
+        icon: trapPinIcon(String(p.n), { plan: true, repeater: p.role === "repeater", done: !!at }),
+        zIndexOffset: 800, draggable: true
+      }).addTo(planGroup)
+        .on("dragend", e => {
+          const ll = e.target.getLatLng();
+          p.lat = ll.lat; p.lng = ll.lng;
+          markEdited();
+          render();
+        })
+        .bindPopup(`<div class="pop">
+            <div class="pop-title">${esc(p.label)} · ${esc(p.role)}</div>
+            <dl><dt>Trap ID</dt><dd>${esc(p.nodeId)}</dd>
+                <dt>Lat</dt><dd>${p.lat.toFixed(6)}</dd>
+                <dt>Lng</dt><dd>${p.lng.toFixed(6)}</dd>
+                ${at ? `<dt>Drift</dt><dd>${driftMeters(p).toFixed(0)} m</dd>` : ""}</dl>
+            <a class="pop-link" href="${mapsPinUrl(p.lat, p.lng)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>
+          </div>`);
+
+      // Where it was planned vs where it actually went in.
+      if (at) {
+        L.polyline([[p.lat, p.lng], at], { color: "#ffffff", weight: 1.5, dashArray: "3 4", opacity: 0.85, interactive: false }).addTo(planGroup);
+        L.marker(at, { icon: L.divIcon({ className: "map-anchor", html: `<div class="drift-mark"></div>`, iconSize: [0, 0] }), interactive: false }).addTo(planGroup);
+      }
+    });
+  }
+
+  function drawBoundary() {
+    boundaryGroup.clearLayers();
+    if (boundary.length < 3) return;
+    L.polygon(boundary, { color: BOUNDARY_COLOR, weight: 3, fillColor: BOUNDARY_COLOR, fillOpacity: 0.07, interactive: false })
+      .addTo(boundaryGroup);
+    map.fitBounds(L.latLngBounds(boundary), { paddingTopLeft: [40, 50], paddingBottomRight: [40, 60], maxZoom: 18 });
+  }
+
+  // ── EXPORT ───────────────────────────────────────────
+  function planRows() {
+    return points.map(p => [p.label, p.role, p.lat.toFixed(6), p.lng.toFixed(6), p.nodeId, mapsPinUrl(p.lat, p.lng)]);
+  }
+
+  function download(name, mime, text) {
+    const url = URL.createObjectURL(new Blob([text], { type: mime }));
+    const a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportCSV() {
+    if (!points.length) return;
+    const head = ["point", "role", "latitude", "longitude", "suggested_trap_id", "google_maps_url"];
+    const csv  = [head, ...planRows()].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    // The BOM is what makes Excel on Windows read this as UTF-8.
+    download("trap-layout.csv", "text/csv;charset=utf-8", "﻿" + csv + "\r\n");
+  }
+
+  function exportGPX() {
+    if (!points.length) return;
+    const wpts = points.map(p =>
+      `  <wpt lat="${p.lat.toFixed(6)}" lon="${p.lng.toFixed(6)}">\n` +
+      `    <name>${esc(p.label)}</name>\n` +
+      `    <desc>${esc(p.role)} · ${esc(p.nodeId)}</desc>\n` +
+      `    <type>${esc(p.role)}</type>\n  </wpt>`).join("\n");
+    download("trap-layout.gpx", "application/gpx+xml",
+      `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="SmartTrap" xmlns="http://www.topografix.com/GPX/1/1">\n${wpts}\n</gpx>\n`);
+  }
+
+  async function copyAll() {
+    if (!points.length) return;
+    const text = planRows().map(r => `${r[0]}\t${r[1]}\t${r[2]}, ${r[3]}\t${r[4]}`).join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus(`Copied ${points.length} points.`, "success");
+    } catch {
+      // Clipboard needs a secure context; fall back to a selectable prompt.
+      window.prompt("Copy these points:", text);
+    }
+  }
+
+  // ── SAVE / LOAD ──────────────────────────────────────
+  function saveInputs() {
+    try { localStorage.setItem(INPUT_KEY, JSON.stringify(readParams())); } catch {}
+  }
+
+  function loadInputs() {
+    try {
+      const raw = localStorage.getItem(INPUT_KEY);
+      if (raw) applyParams(JSON.parse(raw));
+    } catch {}
+  }
+
+  async function fetchLayoutRow() {
+    const rows = await sbGet("trap_layouts?select=id,name,params,points&order=id.asc&limit=1");
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+  }
+
+  async function saveLayout() {
+    if (!points.length) return;
+    const btn = document.getElementById("btn-save");
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    const payload = {
+      params: readParams(),
+      points: points.map(p => ({ n: p.n, label: p.label, lat: p.lat, lng: p.lng, role: p.role, nodeId: p.nodeId })),
+      updated_at: new Date().toISOString()
+    };
+    try {
+      const res = layoutRow
+        ? await sbWrite(`trap_layouts?id=eq.${layoutRow.id}`, "PATCH", payload)
+        : await sbWrite("trap_layouts", "POST", { name: "Layout 1", ...payload });
+      if (res.ok) {
+        // "return=minimal" gives no id back, so re-read it — otherwise the next
+        // save would insert a second row instead of updating this one.
+        if (!layoutRow) layoutRow = await fetchLayoutRow();
+        setStatus(`Saved. ${points.length} traps.`, "success");
+      } else {
+        setStatus(`Couldn't save (${res.status}).`, "error");
+      }
+    } catch (e) {
+      setStatus("Couldn't save: " + e.message, "error");
+    }
+    btn.textContent = "Save layout";
+    btn.disabled = false;
+  }
+
+  // ── INIT ─────────────────────────────────────────────
+  (async function init() {
+    loadInputs();
+    syncModeUI();
+    ["in-count", "in-spacing", "in-setback", "in-setback2", "in-bearing", "in-repeaters"]
+      .forEach(id => document.getElementById(id).addEventListener("input", onInput));
+
+    try {
+      deployed = await fetchNodeLocations();
+      Object.keys(deployed).forEach(k => { if (!deployed[k]) delete deployed[k]; });
+    } catch { deployed = {}; }
+
+    try {
+      boundary = boundaryPoints(await fetchBoundaryRow());
+    } catch {
+      setStatus("Couldn't load your orchard boundary. Check your connection, then refresh.", "error");
+      return;
+    }
+
+    if (boundary.length < 3) {
+      document.getElementById("empty-state").hidden = false;
+      setStatus("No orchard boundary saved yet.", "");
+      return;
+    }
+    document.getElementById("planner").hidden = false;
+    drawBoundary();
+    if (ringSelfIntersects(boundary)) {
+      setNotice("Your orchard boundary crosses itself. Redraw it in Orchard setup for an accurate layout.");
+    }
+
+    // A saved layout is the record, so it wins over regenerating from parameters.
+    try {
+      const row = await fetchLayoutRow();
+      if (row && Array.isArray(row.points) && row.points.length) {
+        layoutRow = row;
+        applyParams(row.params);
+        const proj = localProjection(...verticesMean(boundary));
+        points = row.points.map(p => {
+          const [x, y] = proj.toXY(p.lat, p.lng);
+          return { ...p, x, y, edgeM: p.edgeM ?? 0 };
+        });
+        document.getElementById("btn-save").disabled = false;
+        setStatus(`Saved layout loaded. ${points.length} traps.`, "success");
+        render();
+        return;
+      }
+    } catch (e) {
+      // The table is only there once supabase/trap-layouts.sql has been run.
+      storageReady = false;
+      setNotice("Layout storage isn't set up yet — run supabase/trap-layouts.sql in Supabase. You can still generate and export a layout.");
+    }
+
+    regenerate(true);
+    if (!storageReady) document.getElementById("btn-save").disabled = true;
+  })();
+</script>
+</body>
+</html>

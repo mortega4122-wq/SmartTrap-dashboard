@@ -22,6 +22,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="css/app.css">
   <script src="js/traps.js"></script>
+  <script src="js/geo.js"></script>
 </head>
 <body class="app-fixed is-desktop-map">
 
@@ -30,6 +31,7 @@
   <nav class="app-nav" aria-label="Dashboard">
     <a href="index.html" aria-current="page">Map</a>
     <a href="orchard-setup.html">Orchard setup</a>
+    <a href="layout.html">Layout</a>
     <a href="scan.html">Add trap</a>
   </nav>
   <div class="app-header-end">
@@ -188,17 +190,6 @@
       // Handle both {lat,lng} and legacy {latitude,longitude} formats
       return pts.map(p => [p.lat ?? p.latitude, p.lng ?? p.longitude]);
     } catch { return []; }
-  }
-
-  // ── Point-in-polygon (ray casting) ───────────────────
-  function pointInPolygon(lat, lng, poly) {
-    let inside = false;
-    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-      const xi = poly[i][1], yi = poly[i][0];
-      const xj = poly[j][1], yj = poly[j][0];
-      if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) inside = !inside;
-    }
-    return inside;
   }
 
   // ── IDW interpolation ────────────────────────────────

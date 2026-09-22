@@ -19,8 +19,12 @@ The SmartTraps operate as distributed field nodes, while an autonomous robotic p
 | `downloads/` | PDFs linked from the Documentation page |
 | `dashboard/` | SmartTrap dashboard pages, plus `login.html` and `set-password.html` |
 | `dashboard/js/auth.js` | Supabase client, login check, and request headers used by every dashboard page |
+| `dashboard/layout.html` | Layout pane: spreads traps evenly inside the orchard boundary and hands you each point's coordinates for the field |
+| `dashboard/js/geo.js` | Metres projection, polygon area, and the trap layout generator. No Supabase, Leaflet, or DOM, so it can be tested on its own |
+| `tests/geo-harness.html` | Assertions for `dashboard/js/geo.js`. Open it in a browser; the tab title says OK or FAIL |
 | `scan.html`, `detail.html`, `orchard-setup.html`, `index-mobile.html` (root) | Redirects into `dashboard/`, so existing bookmarks and the QR codes on traps keep working |
 | `supabase/rls-policies.sql` | Per-account access rules (row-level security); run once login works |
+| `supabase/trap-layouts.sql` | Creates the table the Layout pane saves to; run once before using that pane |
 | `supabase/demo-data.sql` | Simulated 10-trap orchard for the demo login, refreshed daily |
 | `supabase/demo-requests.sql` | Creates the table behind the Contact Us form |
 
@@ -34,6 +38,16 @@ Run `supabase/demo-requests.sql` in the SQL Editor. Visitors can submit requests
    - Redirect URLs: add `https://mortega4122-wq.github.io/SmartTrap-dashboard/dashboard/set-password.html`
 3. **Authentication → Users → Invite user.** The invite email opens `set-password.html`, where the user chooses a password.
 4. Once sign-in works, run `supabase/rls-policies.sql` (steps at the top of the file). Until then, anyone with the publishable key can read the dashboard tables.
+5. Run `supabase/trap-layouts.sql` to create the table the Layout pane saves to. Until then that pane still generates and exports layouts, but can't save one.
+
+# Planning a trap layout
+For a block with more than a handful of traps, **Layout** places them evenly instead of by eye.
+1. Mark the block in **Orchard setup** and save. The next-step link takes you to Layout.
+2. Set a trap count (or a spacing), turn the grid to run along your tree rows, and set how far in from the edge to stay. Mark any point as a repeater.
+3. Save. The layout is on your account, so it's there when you open the dashboard on your phone in the field.
+4. At each point tap **Navigate** to walk to it with Google Maps, hang the trap, then **Add this trap** to record where it actually went in. The pane then shows how far that trap ended up from its planned spot.
+
+Planned points are not traps. A trap exists only once you save it from **Add trap** standing at it, so the recorded position is always the real one, never the intended one.
 
 # Per-account data
 Each login sees only its own traps, readings, orchard boundary, and rover track. Supabase row-level security does the filtering; the dashboard pages don't filter by user.
