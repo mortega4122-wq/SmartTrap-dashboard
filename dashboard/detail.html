@@ -40,7 +40,7 @@
   <p class="loading-line" id="loading">Loading trap…</p>
 
   <div id="main-content" hidden>
-    <div class="page-meta"><span id="trap-status"></span><span id="page-subtitle"></span></div>
+    <div class="page-meta is-detail"><div class="report-box" id="report-box"></div><span id="page-subtitle"></span></div>
     <p class="warn-note" id="unsynced" hidden style="margin-top:10px"></p>
 
     <div id="readings-block">
@@ -61,14 +61,14 @@
           <div class="sub">Latest reading</div>
         </div>
         <div>
-          <div class="label"><span class="swatch swatch-battery"></span>Battery</div>
-          <div class="stat-value" id="stat-battery">—</div>
-          <div class="sub" id="stat-battery-sub">Latest reading</div>
+          <div class="label">Battery</div>
+          <div class="stat-value stat-battery" id="stat-battery">—</div>
+          <div class="sub" id="stat-battery-sub">Estimate, latest reading</div>
         </div>
       </div>
 
       <div class="charts">
-        <div class="chart-card">
+        <div class="chart-card is-wide">
           <div class="chart-head">
             <div class="chart-title"><span class="swatch swatch-beetles"></span>Beetles <span class="unit">last 5 days</span></div>
             <div class="chart-tools"><span class="chart-stats" id="insect-stats"></span><button class="btn btn-outline btn-sm" type="button" id="reset-insects" hidden onclick="resetZoom('chart-insects','reset-insects')">Reset zoom</button></div>
@@ -88,13 +88,6 @@
             <div class="chart-tools"><span class="chart-stats" id="hum-stats"></span><button class="btn btn-outline btn-sm" type="button" id="reset-humidity" hidden onclick="resetZoom('chart-humidity','reset-humidity')">Reset zoom</button></div>
           </div>
           <div class="chart-wrap"><canvas id="chart-humidity"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-head">
-            <div class="chart-title"><span class="swatch swatch-battery"></span>Battery <span class="unit">V</span></div>
-            <div class="chart-tools"><button class="btn btn-outline btn-sm" type="button" id="reset-battery" hidden onclick="resetZoom('chart-battery','reset-battery')">Reset zoom</button></div>
-          </div>
-          <div class="chart-wrap"><canvas id="chart-battery"></canvas></div>
         </div>
       </div>
       <p class="charts-hint">Scroll or pinch on a chart to zoom in on a time range. Drag to pan.</p>
@@ -264,9 +257,11 @@
       type: "time",
       time: {
         tooltipFormat: "MMM d, h:mm a",
-        displayFormats: { minute: "h:mm a", hour: "MMM d, ha", day: "MMM d", week: "MMM d", month: "MMM yyyy" }
+        // Month is only ever a major tick (the 1st) inside a 5-day window, so it reads as a day.
+        displayFormats: { minute: "h:mm a", hour: "MMM d, ha", day: "MMM d", week: "MMM d", month: "MMM d" }
       },
-      ticks: { ...monoTicks, maxTicksLimit: 7, maxRotation: 0 },
+      // Major ticks make a wide chart label midnights ("Sep 21") instead of every 17th hour.
+      ticks: { ...monoTicks, maxTicksLimit: 7, maxRotation: 0, major: { enabled: true } },
       grid: { color: "#eef1ec" },
       border: { color: "#dde2da" }
     };
@@ -279,7 +274,67 @@
     };
   }
 
-  function makeChart(id, label, rgb, data, resetBtnId) {
+  // ── Min, max, and average markers ────────────────────────
+  // Marks the highest and lowest points in view and draws a dotted line at their
+  // average. It works from the points inside the visible time range, so zooming or
+  // panning moves the markers and updates the stats in the chart's header to match.
+  const INK = "#141a15";
+
+  function drawTag(ctx, text, x, y, area, side = "right") {
+    ctx.font = "500 11px 'IBM Plex Mono', monospace";
+    const w = ctx.measureText(text).width;
+    // Flip to the other side of the point rather than run off the plot.
+    if (side === "right" && x + w > area.right) side = "left";
+    if (side === "left" && x - w < area.left) side = "right";
+    ctx.textAlign = side === "right" ? "left" : "right";
+    ctx.textBaseline = "middle";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#fff";
+    ctx.strokeText(text, x, y);
+    ctx.fillStyle = INK;
+    ctx.fillText(text, x, y);
+  }
+
+  const extremesPlugin = {
+    id: "extremes",
+    afterDatasetsDraw(chart, _args, opts) {
+      const { ctx, chartArea: area, scales: { x, y } } = chart;
+      const pts = chart.data.datasets[0].data.filter(p => +p.x >= x.min && +p.x <= x.max);
+      const stats = document.getElementById(opts.statsId);
+      if (!pts.length) { stats.textContent = ""; return; }
+
+      let lo = pts[0], hi = pts[0], sum = 0;
+      pts.forEach(p => { if (p.y < lo.y) lo = p; if (p.y > hi.y) hi = p; sum += p.y; });
+      const avg = sum / pts.length, fmt = v => `${v.toFixed(1)}${opts.unit}`;
+      stats.textContent = `Min ${lo.y.toFixed(1)} · Avg ${avg.toFixed(1)} · Max ${hi.y.toFixed(1)}`;
+
+      ctx.save();
+      // Average: a dotted rule across the plot, labelled at its right end.
+      const ay = y.getPixelForValue(avg);
+      ctx.beginPath();
+      ctx.setLineDash([1, 5]);
+      ctx.lineCap = "round";
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(20, 26, 21, 0.7)";
+      ctx.moveTo(area.left, ay);
+      ctx.lineTo(area.right, ay);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      drawTag(ctx, `Avg ${fmt(avg)}`, area.right - 4, ay - 9, area, "left");
+
+      // Extremes: a dot in the series color with a white ring, labelled beside it.
+      [[hi, "Max"], [lo, "Min"]].forEach(([p, name]) => {
+        const px = x.getPixelForValue(+p.x), py = y.getPixelForValue(p.y);
+        ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill();
+        ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fillStyle = opts.color; ctx.fill();
+        drawTag(ctx, `${name} ${fmt(p.y)}`, px + 10, py, area);
+      });
+      ctx.restore();
+    }
+  };
+
+  function makeChart(id, label, rgb, data, resetBtnId, unit, statsId) {
     const chart = new Chart(document.getElementById(id), {
       type: "line",
       data: {
@@ -289,10 +344,17 @@
           fill: true, backgroundColor: `rgba(${rgb}, 0.08)`
         }]
       },
+      plugins: [extremesPlugin],
       options: {
         responsive: true, maintainAspectRatio: false, animation: false,
-        plugins: { legend: { display: false }, zoom: zoomOptions(resetBtnId) },
-        scales: { x: timeScale(), y: { grace: "5%", ticks: monoTicks, grid: { color: "#eef1ec" }, border: { display: false } } }
+        interaction: { mode: "nearest", axis: "x", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toFixed(1)}${unit}` } },
+          zoom: zoomOptions(resetBtnId),
+          extremes: { color: `rgb(${rgb})`, unit, statsId }
+        },
+        scales: { x: timeScale(), y: { grace: "8%", ticks: monoTicks, grid: { color: "#eef1ec" }, border: { display: false } } }
       }
     });
     chartInstances[id] = chart;
@@ -401,12 +463,17 @@
     btn.textContent = "Clear data";
   }
 
-  // ── Init ─────────────────────────────────────────────────
-  const statsText = vals => {
-    const min = Math.min(...vals), max = Math.max(...vals), avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-    return `Min ${min.toFixed(1)} · Avg ${avg.toFixed(1)} · Max ${max.toFixed(1)}`;
-  };
+  // ── Last report ──────────────────────────────────────────
+  // A filled box, colored like the trap's map pin: green when it reported on the
+  // rover's last pass, yellow when it missed it, gray before it has ever reported.
+  function reportBoxHTML(trap) {
+    const { kind, text } = trap.status;
+    const label = kind === "missed" ? `${text} · Last reported` : "Last reported";
+    const when  = trap.lastReport ? formatWhen(trap.lastReport) : "No reports yet";
+    return `<div class="report-label">${esc(label)}</div><div class="report-when">${esc(when)}</div>`;
+  }
 
+  // ── Init ─────────────────────────────────────────────────
   (async function init() {
     let rows, trap;
     try {
@@ -420,8 +487,10 @@
 
     document.getElementById("loading").hidden = true;
     document.getElementById("main-content").hidden = false;
-    document.getElementById("trap-status").innerHTML = statusHTML(trap.status) +
-      (trap.status.detail ? ` <span class="status is-none">${esc(trap.status.detail)}</span>` : "");
+    const box = document.getElementById("report-box");
+    box.className = `report-box is-${trap.status.kind}`;
+    box.innerHTML = reportBoxHTML(trap);
+    if (trap.lastReport) box.title = trap.lastReport.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 
     if (!trap.hasData) {
       document.getElementById("readings-block").hidden = true;
@@ -433,8 +502,9 @@
     document.getElementById("stat-insects").textContent = trap.beetles;
     document.getElementById("stat-temp").innerHTML     = unit(trap.tempF, "°F");
     document.getElementById("stat-humidity").innerHTML = unit(trap.humidity, "%");
-    document.getElementById("stat-battery").innerHTML  = unit(trap.battery, "V", 2);
-    if (trap.battery === null) document.getElementById("stat-battery-sub").textContent = "Not wired";
+    const batt = batteryLevel(trap.battery);
+    if (batt) document.getElementById("stat-battery").innerHTML = `${batteryHTML(trap.battery)}<small>${batt.word}</small>`;
+    else document.getElementById("stat-battery-sub").textContent = "Not wired";
 
     const recent = Array.isArray(rows) ? rows : [];
     const fw = recent.length ? recent[recent.length - 1].firmware_version : null;
@@ -466,19 +536,11 @@
     });
     const entered = allInsectRows.filter(r => r.event_type === "beetle_count_added").length;
 
-    const battData = recent
-      .filter(r => r.battery_voltage !== null && parseFloat(r.battery_voltage) > 0)
-      .sort((a, b) => resolveTimestamp(a) - resolveTimestamp(b))
-      .map(r => ({ x: resolveTimestamp(r), y: parseFloat(r.battery_voltage) }));
-
-    if (tempData.length) document.getElementById("temp-stats").textContent = statsText(tempData.map(p => p.y));
-    if (humData.length)  document.getElementById("hum-stats").textContent  = statsText(humData.map(p => p.y));
     document.getElementById("insect-stats").textContent = `${entered} in · ${allInsectRows.length - entered} out`;
 
     makeInsectChart(insectData, allInsectRows, "reset-insects");
-    makeChart("chart-temp",     "Temperature (°F)", "220, 38, 38", tempData, "reset-temp");
-    makeChart("chart-humidity", "Humidity (%)",     "2, 132, 199", humData,  "reset-humidity");
-    makeChart("chart-battery",  "Battery (V)",      "82, 92, 83",  battData, "reset-battery");
+    makeChart("chart-temp",     "Temperature (°F)", "220, 38, 38", tempData, "reset-temp",     "°F", "temp-stats");
+    makeChart("chart-humidity", "Humidity (%)",     "2, 132, 199", humData,  "reset-humidity", "%",  "hum-stats");
   })();
 </script>
 </body>

@@ -147,6 +147,35 @@ function statusHTML(status) {
   return `<span class="status${cls}">${esc(status.text)}</span>`;
 }
 
+// ── Battery ──────────────────────────────────────────────
+// A reading becomes one of four bar counts, never a percentage or volts: the
+// firmware doesn't measure the battery yet, so nothing backs a precise number.
+// Thresholds assume one Li-ion cell (4.2 V full), which the firmware's 4.17 V
+// placeholder implies; revisit them once the chemistry is chosen. Anything above
+// the top one, like the 6 V older firmware sends, reads as full.
+const BATTERY_LEVELS = [
+  { min: 3.95,      bars: 4, word: "Full" },
+  { min: 3.80,      bars: 3, word: "Good" },
+  { min: 3.65,      bars: 2, word: "Low" },
+  { min: -Infinity, bars: 1, word: "Very low" }
+];
+
+function batteryLevel(volts) {
+  return volts === null ? null : BATTERY_LEVELS.find(l => volts >= l.min);
+}
+
+// A battery outline with its bars filled in, sized by CSS (.batt). Returns "" with
+// no reading, so an unwired trap never shows as an empty (dead-looking) battery.
+function batteryHTML(volts) {
+  const level = batteryLevel(volts);
+  if (!level) return "";
+  const bars = [0, 1, 2, 3].map(i =>
+    `<rect class="${i < level.bars ? "batt-bar" : "batt-slot"}" x="${2.75 + i * 5.25}" y="2.75" width="3.75" height="8.5"/>`).join("");
+  return `<svg class="batt is-${level.bars}" viewBox="0 0 28 14" role="img" aria-label="Battery ${level.word.toLowerCase()}">` +
+    `<title>Battery ${level.word.toLowerCase()} (estimate)</title>` +
+    `<rect class="batt-body" x="0.75" y="0.75" width="23.5" height="12.5" rx="1.5"/><rect class="batt-tip" x="25" y="4.5" width="2" height="5"/>${bars}</svg>`;
+}
+
 // ── Loading traps ────────────────────────────────────────
 async function loadTrap(id, coords, pings) {
   const [rows, beetles] = await Promise.all([
@@ -206,9 +235,9 @@ function summaryHTML(s) {
 function trapCardHTML(t) {
   const reading = (v, unit, digits) => v === null ? "—" : `${v.toFixed(digits)}<small>${unit}</small>`;
   const power = [
-    t.battery !== null ? `${t.battery.toFixed(2)} V` : "Battery not wired",
-    t.rssi !== null ? `signal ${String(t.rssi).replace("-", "−")} dBm` : null
-  ].filter(Boolean).join(" · ");
+    t.battery !== null ? batteryHTML(t.battery) : "<span>Battery not wired</span>",
+    t.rssi !== null ? `<span>signal ${esc(String(t.rssi).replace("-", "−"))} dBm</span>` : ""
+  ].join("");
   return `
     <a class="trap-card" href="detail.html?node=${encodeURIComponent(t.id)}" data-trap="${esc(t.id)}">
       <div class="trap-card-top"><span class="trap-id">${esc(t.id)}</span>${statusHTML(t.status)}</div>
@@ -219,7 +248,7 @@ function trapCardHTML(t) {
         <div class="reading"><div class="reading-value">${reading(t.humidity, "%", 1)}</div><div class="label">Humidity</div></div>
       </div>
       ${t.coords ? "" : `<p class="warn-note">No location set. Add it on the trap page.</p>`}
-      <div class="trap-card-foot"><span>${esc(power)}</span><svg class="open" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>
+      <div class="trap-card-foot"><span class="trap-card-power">${power}</span><svg class="open" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>
     </a>`;
 }
 
