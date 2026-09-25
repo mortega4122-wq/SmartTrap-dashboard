@@ -227,14 +227,58 @@ body:not(.has-dark-hero) main { padding-top: var(--header-h); }
 .hero .accent { color: var(--color-accent-light); }
 .hero .lead { color: rgba(255, 255, 255, 0.84); }
 
+/* Home hero: the photo fills the hero and the text sits in a dark green box (.hero-panel)
+   over it. The photo is scaled and placed so the trap lands just right of the box at any
+   width, which depends on where the trap is in this particular photo: if hero-orchard.jpg
+   changes, re-measure --subject-left and --subject-middle (fractions of the photo). */
+.hero-boxed {
+  --panel-width:    480px;
+  --subject-left:   0.374;   /* tip of the trap's left side plate, across the photo */
+  --subject-middle: 0.4975;  /* middle of the trap, down the photo */
+  --subject-gap:    40px;    /* between the box and that side plate */
+}
+
+@media (min-width: 1041px) {
+  /* Taller on very wide screens, where the zoom that clears the box also makes the trap taller. */
+  .hero-boxed { min-height: min(100vh, max(900px, 50vw)); }
+  /* Only the top is shaded, for the white nav over bright leaves; the box handles the text. */
+  .hero-boxed::after { background: linear-gradient(180deg, rgba(8, 14, 9, 0.7) 0%, rgba(8, 14, 9, 0) 24%); }
+  /* Wide enough that the side plate starts --subject-gap past the box's right edge (the box
+     starts where .container's content does), then centred on the trap between the header
+     and the bottom of the hero, or of the screen when the box makes the hero taller. */
+  .hero-boxed .media img {
+    position: absolute; left: 0; top: calc(min(50%, 50vh) + var(--header-h) / 2);
+    width: max(100%, (max(var(--gutter), (100% - var(--max-width)) / 2) + var(--panel-width) + var(--subject-gap)) / var(--subject-left));
+    max-width: none; height: auto;
+    transform: translateY(calc(var(--subject-middle) * -100%));
+  }
+  .hero-boxed .hero-panel {
+    width: min(100%, var(--panel-width)); padding: clamp(28px, 3vw, 40px);
+    background: rgba(28, 38, 29, 0.9); /* --color-forest; the slight see-through keeps the photo behind it */
+    backdrop-filter: blur(12px) saturate(1.2);
+  }
+  .hero-boxed h1 { font-size: clamp(2.4rem, 3.8vw, 3.4rem); }
+  .hero-boxed .lead { font-size: 1.05rem; }
+  .hero-boxed .actions { margin-top: 28px; }
+}
+
+/* Too narrow for the trap to fit beside the box: the whole photo sits under the header
+   and the text follows on the dark field. */
+@media (max-width: 1040px) {
+  .hero.hero-boxed { flex-direction: column; align-items: stretch; min-height: 0; padding-top: var(--header-h); }
+  .hero-boxed::after { display: none; }
+  .hero-boxed .media { position: relative; inset: auto; aspect-ratio: 3 / 2; }
+  .hero-boxed .hero-content { padding-top: 40px; }
+}
+
 /* The page's one authored motion: the hero settles once on arrival. Elements are
    visible by default, so nothing depends on the animation running. */
 @media (prefers-reduced-motion: no-preference) {
-  .hero-content > * { animation: hero-settle 900ms var(--ease-out) backwards; }
-  .hero-content > :nth-child(1) { animation-delay: 40ms; }
-  .hero-content > :nth-child(2) { animation-delay: 140ms; }
-  .hero-content > :nth-child(3) { animation-delay: 240ms; }
-  .hero-content > :nth-child(4) { animation-delay: 340ms; }
+  :is(.hero-content, .hero-panel) > :not(.hero-panel) { animation: hero-settle 900ms var(--ease-out) backwards; }
+  :is(.hero-content, .hero-panel) > :nth-child(1) { animation-delay: 40ms; }
+  :is(.hero-content, .hero-panel) > :nth-child(2) { animation-delay: 140ms; }
+  :is(.hero-content, .hero-panel) > :nth-child(3) { animation-delay: 240ms; }
+  :is(.hero-content, .hero-panel) > :nth-child(4) { animation-delay: 340ms; }
 }
 @keyframes hero-settle {
   from { opacity: 0; transform: translateY(16px); filter: blur(8px); }
