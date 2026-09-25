@@ -32,7 +32,7 @@
   --font-sans: 'Inter Tight', 'Helvetica Now Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
 
-  --max-width:   1240px;
+  --max-width:   clamp(1240px, 75vw, 1920px);  /* content width; widens on large monitors */
   --gutter:      clamp(20px, 4vw, 48px);
   --header-h:    72px;
   --section-pad: clamp(72px, 10vw, 136px);
@@ -123,7 +123,7 @@ body:not(.has-dark-hero) main { padding-top: var(--header-h); }
 .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; height: var(--header-h); }
 
 .wordmark {
-  font-size: 1.4rem; font-weight: 600; letter-spacing: -0.035em; line-height: 1;
+  font-size: clamp(1.6rem, 0.3vw + 1.33rem, 1.85rem); font-weight: 600; letter-spacing: -0.035em; line-height: 1;
   color: inherit; text-decoration: none; white-space: nowrap;
 }
 .wordmark:hover { color: inherit; }
@@ -133,13 +133,14 @@ body:not(.has-dark-hero) main { padding-top: var(--header-h); }
 
 .site-nav { display: flex; align-items: center; gap: 40px; }
 .site-nav ul { display: flex; gap: 28px; margin: 0; padding: 0; list-style: none; }
-.site-nav ul a { color: inherit; font-size: 15px; text-decoration: none; opacity: 0.78; transition: opacity 0.2s var(--ease-out); }
+/* Nav text and buttons grow a little past 1440px, for large monitors. */
+.site-nav ul a { color: inherit; font-size: clamp(17px, 0.18vw + 14.4px, 19px); text-decoration: none; opacity: 0.78; transition: opacity 0.2s var(--ease-out); }
 .site-nav ul a:hover,
 .site-nav ul a[aria-current="page"] { opacity: 1; }
 .site-nav ul a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; }
 
 .nav-actions { display: flex; align-items: center; gap: 8px; }
-.nav-actions .btn { padding: 11px 16px; font-size: 12px; }
+.nav-actions .btn { padding: 0.95em 1.4em; font-size: clamp(14px, 0.09vw + 12.7px, 15px); }
 
 .nav-toggle { display: none; }
 
@@ -195,7 +196,8 @@ body:not(.has-dark-hero) main { padding-top: var(--header-h); }
     calc(100% - 34px) calc(100% - 17px), calc(100% - 17px) calc(100% - 34px);
 }
 .media:has(img) { background-image: none; }
-.media img { width: 100%; height: 100%; object-fit: cover; }
+/* A photo whose subject isn't centred sets style="--focus: X% Y%" to keep it in the crop. */
+.media img { width: 100%; height: 100%; object-fit: cover; object-position: var(--focus, 50% 50%); }
 /* site.js removes images that fail to load, which reveals this label. */
 /* Sits inboard of the bottom-left corner mark rather than under it. */
 .media:not(:has(img))::after {
@@ -227,39 +229,63 @@ body:not(.has-dark-hero) main { padding-top: var(--header-h); }
 .hero .accent { color: var(--color-accent-light); }
 .hero .lead { color: rgba(255, 255, 255, 0.84); }
 
-/* Home hero: the photo fills the hero and the text sits in a dark green box (.hero-panel)
-   over it. The photo is scaled and placed so the trap lands just right of the box at any
-   width, which depends on where the trap is in this particular photo: if hero-orchard.jpg
-   changes, re-measure --subject-left and --subject-middle (fractions of the photo). */
+/* Home hero. On laptops and desktops the photo fills the hero, the text sits in a dark green
+   box (.hero-panel) over it, and the hero takes about two thirds of the screen so the next
+   section shows below. The photo is sized so the trap fills at most --subject-max of the hero's
+   height, then placed so the trap is centred in the space right of the box (never closer to it
+   than --subject-gap). Where that leaves the photo short of an edge, the edge fades into
+   hero-orchard-backdrop.jpg, a blur of the photo's own leaves. The --subject-* fractions are
+   measured from this particular photo: re-measure them if hero-orchard.jpg changes. */
 .hero-boxed {
-  --panel-width:    480px;
   --subject-left:   0.374;   /* tip of the trap's left side plate, across the photo */
+  --subject-right:  0.68;    /* tip of its right side plate */
   --subject-middle: 0.4975;  /* middle of the trap, down the photo */
-  --subject-gap:    40px;    /* between the box and that side plate */
+  --subject-size:   0.334;   /* the trap's height, as a fraction of the photo's width */
+  --subject-gap:    40px;    /* least space between the box and the trap */
+  --subject-max:    0.64;    /* most of the hero's height the trap may fill */
+  /* The box, and everything in it (sized in em), grows between 1920px and 2560px wide screens. */
+  --panel-font:  clamp(16px, 0.75vw + 1.6px, 20.8px);
+  --panel-width: clamp(480px, 22.5vw + 48px, 624px);  /* 30em */
+  /* About the hero's height: two thirds of the screen, or what the box needs if that's more. */
+  --hero-h: max(67vh, clamp(600px, 25.36vw + 190px, 839px));
+  --box-right: calc(max(var(--gutter), (100vw - var(--max-width)) / 2) + var(--panel-width));
+  --photo-w: calc(var(--subject-max) * var(--hero-h) / var(--subject-size));
+  /* Left tip of the trap, then the photo's left edge worked back from it. */
+  --trap-x: max(var(--box-right) + var(--subject-gap),
+                (var(--box-right) + 100vw - (var(--subject-right) - var(--subject-left)) * var(--photo-w)) / 2);
+  --photo-x: calc(var(--trap-x) - var(--subject-left) * var(--photo-w));
 }
+.hero-backdrop { display: none; }
 
 @media (min-width: 1041px) {
-  /* Taller on very wide screens, where the zoom that clears the box also makes the trap taller. */
-  .hero-boxed { min-height: min(100vh, max(900px, 50vw)); }
+  .hero-boxed { min-height: 67vh; align-items: center; }
+  .hero-boxed .hero-content { padding-top: calc(var(--header-h) + 32px); padding-bottom: 32px; }
   /* Only the top is shaded, for the white nav over bright leaves; the box handles the text. */
   .hero-boxed::after { background: linear-gradient(180deg, rgba(8, 14, 9, 0.7) 0%, rgba(8, 14, 9, 0) 24%); }
-  /* Wide enough that the side plate starts --subject-gap past the box's right edge (the box
-     starts where .container's content does), then centred on the trap between the header
-     and the bottom of the hero, or of the screen when the box makes the hero taller. */
-  .hero-boxed .media img {
-    position: absolute; left: 0; top: calc(min(50%, 50vh) + var(--header-h) / 2);
-    width: max(100%, (max(var(--gutter), (100% - var(--max-width)) / 2) + var(--panel-width) + var(--subject-gap)) / var(--subject-left));
-    max-width: none; height: auto;
+  .hero-boxed .hero-backdrop { display: block; position: absolute; inset: 0; }
+  /* The trap's middle sits halfway down the hero below the header (or down the screen, when
+     the box makes the hero taller than it). */
+  .hero-boxed .hero-photo {
+    position: absolute; left: var(--photo-x); top: calc(min(50%, 50vh) + var(--header-h) / 2);
+    width: var(--photo-w); max-width: none; height: auto;
     transform: translateY(calc(var(--subject-middle) * -100%));
+    /* An edge that stops short of the screen's edge fades out over up to 300px; an edge past
+       the screen's edge doesn't fade at all. */
+    --fade-l: clamp(0px, 3 * var(--photo-x), 300px);
+    --fade-r: clamp(0px, 3 * (100vw - var(--photo-x) - var(--photo-w)), 300px);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent);
   }
   .hero-boxed .hero-panel {
-    width: min(100%, var(--panel-width)); padding: clamp(28px, 3vw, 40px);
+    width: min(100%, var(--panel-width)); font-size: var(--panel-font); padding: clamp(1.75em, 3vw, 2.5em);
     background: rgba(28, 38, 29, 0.9); /* --color-forest; the slight see-through keeps the photo behind it */
     backdrop-filter: blur(12px) saturate(1.2);
   }
-  .hero-boxed h1 { font-size: clamp(2.4rem, 3.8vw, 3.4rem); }
-  .hero-boxed .lead { font-size: 1.05rem; }
-  .hero-boxed .actions { margin-top: 28px; }
+  .hero-boxed .eyebrow { font-size: 0.75em; }
+  .hero-boxed h1 { font-size: clamp(2.4em, 3.8vw, 3.4em); }
+  .hero-boxed .lead { font-size: 1.05em; }
+  .hero-boxed .actions { margin-top: 1.75em; }
+  .hero-boxed .actions .btn { font-size: 0.8125em; padding: 1.15em 1.7em; }
 }
 
 /* Too narrow for the trap to fit beside the box: the whole photo sits under the header
@@ -561,7 +587,7 @@ body:not(.has-dark-hero) main { padding-top: var(--header-h); }
 
 /* ── RESPONSIVE ── */
 /* The header holds four links plus two buttons, so it collapses early. */
-@media (max-width: 1040px) {
+@media (max-width: 1180px) {
   .nav-toggle {
     display: inline-flex; align-items: center; justify-content: center;
     width: 44px; height: 44px; padding: 0;
