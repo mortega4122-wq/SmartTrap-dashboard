@@ -267,17 +267,19 @@ function addImagery(map) {
   L.tileLayer(IMAGERY_URL, { attribution: IMAGERY_ATTRIBUTION, maxZoom: 20 }).addTo(map);
 }
 
-// A square trap pin. With `value`, it becomes a chip showing that value in its scale color.
+// A round trap pin. With `value`, it becomes a chip showing that value in its scale color.
+// The popup opens just above either one.
 function trapPinIcon(label, opts = {}) {
   const cls = ["pin"];
+  const isValue = opts.value !== undefined;
   if (opts.missed) cls.push("is-missed");
-  if (opts.value !== undefined) cls.push("is-value");
+  if (isValue) cls.push("is-value");
   if (opts.hot) cls.push("is-hot");
   if (opts.plan) cls.push("is-plan");           // planned, not installed yet
   if (opts.repeater) cls.push("is-repeater");
-  const style = opts.fill ? ` style="background:${opts.fill};color:${opts.ink}"` : "";
-  const text  = opts.value !== undefined ? opts.value : label;
-  return L.divIcon({ className: "map-anchor", html: `<div class="${cls.join(" ")}"${style}>${esc(text)}</div>`, iconSize: [0, 0], popupAnchor: [0, -16] });
+  const style = opts.fill ? ` style="background:${opts.fill}"` : "";
+  const text  = isValue ? opts.value : label;
+  return L.divIcon({ className: "map-anchor", html: `<div class="${cls.join(" ")}"${style}>${esc(text)}</div>`, iconSize: [0, 0], popupAnchor: [0, isValue ? -30 : -20] });
 }
 
 function roverIcon(isLatest) {

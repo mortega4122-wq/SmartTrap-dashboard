@@ -228,17 +228,22 @@ button, input, select, textarea { font: inherit; letter-spacing: inherit; }
 }
 .map-notice::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 9px; background: var(--color-warn); vertical-align: 1px; }
 
-/* Heatmap switch with its scale directly beneath it. */
-.heat-panel { left: 16px; bottom: 28px; width: 352px; padding: 14px 16px 16px; }
+/* Heatmap switch with its scale directly beneath it. The page lifts the panel by
+   --heat-lift, however much shorter it is than with the scale showing, so its top
+   edge and buttons stay put and only its bottom edge moves as the scale comes and goes. */
+.heat-panel { left: 16px; bottom: calc(28px + var(--heat-lift, 0px)); width: 352px; padding: 14px 16px 16px; }
 .heat-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
-.heat-readout { font-family: var(--font-mono); font-size: 12px; color: var(--color-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Line height 1 keeps the readout within the label's row, so hovering the map doesn't grow the panel. */
+.heat-readout { font-family: var(--font-mono); font-size: 12px; line-height: 1; color: var(--color-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .heat-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .heat-buttons .btn { min-height: 36px; padding: 0 8px; gap: 7px; font-size: 11px; }
 .heat-buttons .btn + .btn { margin-left: -1px; }
 .heat-buttons .btn[aria-pressed="true"] { position: relative; z-index: 1; }
 .heat-hint { margin-top: 12px; font-size: 13px; color: var(--color-muted); }
 .heat-scale { margin-top: 14px; }
-.heat-title { font-size: 15px; font-weight: 500; letter-spacing: -0.01em; margin-bottom: 9px; }
+/* The title and ticks hold their line while still empty, so the panel's full height
+   can be measured before the first heatmap is drawn. */
+.heat-title { min-height: 1lh; font-size: 15px; font-weight: 500; letter-spacing: -0.01em; margin-bottom: 9px; }
 .heat-bar { position: relative; height: 16px; }
 .heat-bar canvas { display: block; width: 100%; height: 16px; }
 /* Where the value under the cursor falls on the scale. */
@@ -246,7 +251,7 @@ button, input, select, textarea { font: inherit; letter-spacing: inherit; }
   position: absolute; top: -5px; width: 3px; height: 26px; margin-left: -1.5px;
   background: var(--color-text); outline: 1px solid #fff; pointer-events: none;
 }
-.heat-ticks { display: flex; justify-content: space-between; margin-top: 7px; font-family: var(--font-mono); font-size: 12px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.heat-ticks { display: flex; justify-content: space-between; min-height: 1lh; margin-top: 7px; font-family: var(--font-mono); font-size: 12px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
 
 /* Map key: what each symbol on the map means. */
 .key { right: 12px; bottom: 28px; min-width: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
@@ -270,21 +275,24 @@ button, input, select, textarea { font: inherit; letter-spacing: inherit; }
 .pin {
   position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
   display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border-radius: 50%;
+  width: 36px; height: 36px; border-radius: 50%;
   background: #dc2626; border: 2px solid #fff; color: #fff;
   box-shadow: 0 0 0 1px #dc2626, 0 2px 6px rgba(0, 0, 0, 0.3);
-  font-family: var(--font-sans); font-size: 12px; font-weight: 600; line-height: 1;
+  font-family: var(--font-sans); font-size: 15px; font-weight: 600; line-height: 1;
   font-variant-numeric: tabular-nums; white-space: nowrap;
   transition: transform 0.15s var(--ease-out), outline-color 0.15s;
   outline: 2px solid transparent; outline-offset: 2px;
 }
-.pin.is-missed { background: #facc15; color: #1c261d; box-shadow: 0 0 0 1px #ca8a04, 0 2px 6px rgba(0, 0, 0, 0.3); }
+.pin.is-missed { background: #facc15; box-shadow: 0 0 0 1px #ca8a04, 0 2px 6px rgba(0, 0, 0, 0.3); }
+/* A trap's label is always white; a dark halo keeps it readable on yellow and on
+   the pale end of a scale. */
+.pin.is-missed, .pin.is-value { text-shadow: 0 0 2px rgba(0, 0, 0, 0.7), 0 1px 1px rgba(0, 0, 0, 0.4); }
 /* While a heatmap is on, a pin becomes a round chip showing its own value, filled
    with that value's scale color (set inline). It grows to fit "56.3°". */
 .pin.is-value {
-  width: auto; height: auto; min-width: 32px; aspect-ratio: 1; padding: 0 5px;
+  width: auto; height: auto; min-width: 40px; aspect-ratio: 1; padding: 0 5px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  font-family: var(--font-mono); font-size: 14px; font-weight: 500;
 }
 .pin.is-value.is-missed { border-color: #facc15; box-shadow: 0 0 0 1px #ca8a04, 0 2px 6px rgba(0, 0, 0, 0.3); }
 .pin.is-hot { transform: translate(-50%, -50%) scale(1.15); outline-color: var(--color-primary); z-index: 2; }

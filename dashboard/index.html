@@ -58,7 +58,7 @@
 
     <p class="map-notice" id="no-location" hidden></p>
 
-    <div class="map-panel heat-panel">
+    <div class="map-panel heat-panel" id="heat-panel">
       <div class="heat-head">
         <span class="label">Heatmap</span>
         <span class="heat-readout" id="heat-readout" aria-live="polite" hidden></span>
@@ -220,13 +220,6 @@
     return stops[stops.length - 1][1];
   }
 
-  // Black or white text, whichever reads better on a pin's fill.
-  function inkFor(r, g, b) {
-    const lin = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
-    const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-    return (L + 0.05) / 0.0603 >= 1.05 / (L + 0.05) ? "#141a15" : "#ffffff";
-  }
-
   const clamp01 = v => Math.max(0, Math.min(1, v));
 
   // ── Heatmap settings ─────────────────────────────────
@@ -315,7 +308,29 @@
       drawScale(heatmapActive);
     }
     hideReadout();
+    liftHeatPanel();
   }
+
+  // ── Panel position ───────────────────────────────────
+  // Lift the panel by however much shorter it is than with the scale showing, so its
+  // top edge and buttons stay put and only the bottom edge moves. syncHeatUI() calls
+  // this in the same step that swaps the hint and the scale; the observer catches
+  // the other size changes, like fonts loading or the window narrowing.
+  const heatPanel = document.getElementById("heat-panel");
+  function liftHeatPanel() {
+    const hint = document.getElementById("heat-hint"), scale = document.getElementById("heat-scale");
+    const panelHeight = () => heatPanel.getBoundingClientRect().height;
+    const height = panelHeight();
+    let full = height;
+    if (scale.hidden) {             // measure it with the scale in the hint's place, then put it back
+      const hintHidden = hint.hidden;
+      hint.hidden = true; scale.hidden = false;
+      full = panelHeight();
+      hint.hidden = hintHidden; scale.hidden = true;
+    }
+    heatPanel.style.setProperty("--heat-lift", `${Math.max(0, full - height)}px`);
+  }
+  new ResizeObserver(liftHeatPanel).observe(heatPanel);
 
   // ── Pins: numbers normally, values while a heatmap is on ──
   function refreshPins() {
@@ -324,7 +339,7 @@
       const value = heatmapActive ? { temp: trap.tempF, humidity: trap.humidity, pests: trap.beetles }[heatmapActive] : null;
       if (heatRange && value !== null) {
         const [r, g, b] = asDrawn(valueToColor(clamp01((value - heatRange.min) / heatRange.span), HEATMAPS[heatmapActive].stops));
-        Object.assign(opts, { value: HEATMAPS[heatmapActive].pin(value), fill: `rgb(${r},${g},${b})`, ink: inkFor(r, g, b) });
+        Object.assign(opts, { value: HEATMAPS[heatmapActive].pin(value), fill: `rgb(${r},${g},${b})` });
       }
       marker.setIcon(trapPinIcon(label, opts));
     });
