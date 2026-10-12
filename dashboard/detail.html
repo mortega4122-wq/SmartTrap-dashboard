@@ -70,7 +70,7 @@
       <div class="charts">
         <div class="chart-card is-wide">
           <div class="chart-head">
-            <div class="chart-title"><span class="swatch swatch-beetles"></span>Beetles <span class="unit">last 5 days</span></div>
+            <div class="chart-title"><span class="swatch swatch-beetles"></span>Beetles</div>
             <div class="chart-tools"><span class="chart-stats" id="insect-stats"></span><button class="btn btn-outline btn-sm" type="button" id="reset-insects" hidden onclick="resetZoom('chart-insects','reset-insects')">Reset zoom</button></div>
           </div>
           <div class="chart-wrap"><canvas id="chart-insects"></canvas></div>
@@ -90,7 +90,7 @@
           <div class="chart-wrap"><canvas id="chart-humidity"></canvas></div>
         </div>
       </div>
-      <p class="charts-hint">Scroll or pinch on a chart to zoom in on a time range. Drag to pan.</p>
+      <p class="charts-hint">Charts open on the last 5 days. Drag to pan back through earlier readings; scroll or pinch to zoom.</p>
     </div>
 
     <section class="manage" aria-labelledby="manage-title">
@@ -164,13 +164,17 @@
   }
 
   // ── Data fetching ────────────────────────────────────────
+  // Every reading this trap has sent, oldest first. Supabase caps each response
+  // (1,000 rows by default), so this pages through by id until a page comes back empty.
   async function fetchNodeData() {
-    const since = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/trap_data?node_id=eq.${encodeURIComponent(nodeId)}&upload_timestamp=gte.${since}&order=upload_timestamp.asc`,
-      { headers: { ...(await authHeaders()), "Range-Unit": "items", "Range": "0-9999" } }
-    );
-    return res.json();
+    const rows = [];
+    for (let lastId = 0; ;) {
+      const page = await sbGet(`trap_data?node_id=eq.${encodeURIComponent(nodeId)}&id=gt.${lastId}&order=id.asc&limit=1000` +
+        `&select=id,event_type,event_value,event_timestamp,upload_timestamp,firmware_version`);
+      if (!Array.isArray(page) || page.length === 0) return rows;
+      rows.push(...page);
+      lastId = page[page.length - 1].id;
+    }
   }
 
   async function fetchCurrentLocation() {
@@ -252,12 +256,15 @@
   const chartInstances = {};
   const monoTicks = { font: { family: "'IBM Plex Mono', monospace", size: 11 }, color: "#525c53" };
 
-  function timeScale() {
+  // range: { first, last, viewMin } in ms. The chart opens on viewMin..last (the
+  // last 5 days) and can pan or zoom out as far as first..last (all of its readings).
+  function timeScale(range) {
     return {
       type: "time",
+      min: range.viewMin, max: range.last,
       time: {
         tooltipFormat: "MMM d, h:mm a",
-        // Month is only ever a major tick (the 1st) inside a 5-day window, so it reads as a day.
+        // A month tick is always the 1st, so it reads as a day ("Oct 1") alongside the others.
         displayFormats: { minute: "h:mm a", hour: "MMM d, ha", day: "MMM d", week: "MMM d", month: "MMM d" }
       },
       // Major ticks make a wide chart label midnights ("Sep 21") instead of every 17th hour.
@@ -267,8 +274,9 @@
     };
   }
 
-  function zoomOptions(resetBtnId) {
+  function zoomOptions(resetBtnId, range) {
     return {
+      limits: { x: { min: range.first, max: range.last } },
       pan:  { enabled: true, mode: "x", onPanComplete: () => showResetBtn(resetBtnId) },
       zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "x", onZoomComplete: () => showResetBtn(resetBtnId) }
     };
@@ -334,7 +342,7 @@
     }
   };
 
-  function makeChart(id, label, rgb, data, resetBtnId, unit, statsId) {
+  function makeChart(id, label, rgb, data, range, resetBtnId, unit, statsId) {
     const chart = new Chart(document.getElementById(id), {
       type: "line",
       data: {
@@ -351,10 +359,10 @@
         plugins: {
           legend: { display: false },
           tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toFixed(1)}${unit}` } },
-          zoom: zoomOptions(resetBtnId),
+          zoom: zoomOptions(resetBtnId, range),
           extremes: { color: `rgb(${rgb})`, unit, statsId }
         },
-        scales: { x: timeScale(), y: { grace: "8%", ticks: monoTicks, grid: { color: "#eef1ec" }, border: { display: false } } }
+        scales: { x: timeScale(range), y: { grace: "8%", ticks: monoTicks, grid: { color: "#eef1ec" }, border: { display: false } } }
       }
     });
     chartInstances[id] = chart;
@@ -366,7 +374,18 @@
   // dark down for an exit, plotted at the running total at that moment.
   const BEETLE_RGB = "249, 115, 22";
 
-  function makeInsectChart(insectData, allInsectRows, resetBtnId) {
+  // Counts the entries and exits inside the visible time range for the chart's
+  // header, so it follows panning and zooming like the min/max stats do.
+  const beetleStatsPlugin = {
+    id: "beetleStats",
+    afterDatasetsDraw(chart) {
+      const { min, max } = chart.scales.x;
+      const inView = i => chart.data.datasets[i].data.filter(p => +p.x >= min && +p.x <= max).length;
+      document.getElementById("insect-stats").textContent = `${inView(1)} in · ${inView(2)} out`;
+    }
+  };
+
+  function makeInsectChart(insectData, allInsectRows, range, resetBtnId) {
     let running = 0;
     const addedPoints = [], removedPoints = [];
     allInsectRows.forEach(r => {
@@ -386,6 +405,7 @@
             rotation: 180, backgroundColor: "#141a15", borderColor: "#fff", borderWidth: 1.5, order: 1 }
         ]
       },
+      plugins: [beetleStatsPlugin],
       options: {
         responsive: true, maintainAspectRatio: false, animation: false,
         plugins: {
@@ -399,10 +419,10 @@
               }
             }
           },
-          zoom: zoomOptions(resetBtnId)
+          zoom: zoomOptions(resetBtnId, range)
         },
-        // A count starts at zero; only dip below it if the window's running total does.
-        scales: { x: timeScale(), y: { min: Math.min(0, ...insectData.map(p => p.y)), grace: "5%", ticks: { ...monoTicks, precision: 0 }, grid: { color: "#eef1ec" }, border: { display: false } } }
+        // A count starts at zero; only dip below it if the running total ever does.
+        scales: { x: timeScale(range), y: { min: insectData.reduce((m, p) => Math.min(m, p.y), 0), grace: "5%", ticks: { ...monoTicks, precision: 0 }, grid: { color: "#eef1ec" }, border: { display: false } } }
       }
     });
     chartInstances["chart-insects"] = chart;
@@ -506,27 +526,24 @@
     if (batt) document.getElementById("stat-battery").innerHTML = `${batteryHTML(trap.battery)}<small>${batt.word}</small>`;
     else document.getElementById("stat-battery-sub").textContent = "Not wired";
 
-    const recent = Array.isArray(rows) ? rows : [];
-    const fw = recent.length ? recent[recent.length - 1].firmware_version : null;
-    document.getElementById("page-subtitle").textContent =
-      [fw ? `Firmware ${fw}` : null, `${recent.length} readings in the last 5 days`].filter(Boolean).join(" · ");
+    const all = Array.isArray(rows) ? rows : [];
 
-    const unsynced = recent.filter(r => r.event_timestamp && r.event_timestamp.startsWith("UNSYNCED_")).length;
+    const unsynced = all.filter(r => r.event_timestamp && r.event_timestamp.startsWith("UNSYNCED_")).length;
     if (unsynced > 0) {
       const note = document.getElementById("unsynced");
       note.textContent = `${unsynced} reading${unsynced === 1 ? "" : "s"} from before the trap's clock was set ${unsynced === 1 ? "is" : "are"} plotted at upload time.`;
       note.hidden = false;
     }
 
-    // Chart datasets (last 5 days)
-    const series = (type, map) => recent
+    // Chart datasets (every reading)
+    const series = (type, map) => all
       .filter(r => r.event_type === type && r.event_value !== null)
       .sort((a, b) => resolveTimestamp(a) - resolveTimestamp(b))
       .map(r => ({ x: resolveTimestamp(r), y: map(parseFloat(r.event_value)) }));
     const tempData = rollingAverage(series("temp", cToF), 5);
     const humData  = rollingAverage(series("humidity", v => v), 5);
 
-    const allInsectRows = recent
+    const allInsectRows = all
       .filter(r => r.event_type === "beetle_count_added" || r.event_type === "beetle_count_removed")
       .sort((a, b) => resolveTimestamp(a) - resolveTimestamp(b));
     let runningTotal = 0;
@@ -534,13 +551,28 @@
       runningTotal += r.event_type === "beetle_count_added" ? 1 : -1;
       return { x: resolveTimestamp(r), y: runningTotal };
     });
-    const entered = allInsectRows.filter(r => r.event_type === "beetle_count_added").length;
 
-    document.getElementById("insect-stats").textContent = `${entered} in · ${allInsectRows.length - entered} out`;
+    // The charts open on the 5 days up to the trap's newest reading and pan back to its first.
+    const plotted = [tempData, humData, insectData].filter(d => d.length);
+    const range = {};
+    if (plotted.length) {
+      range.first   = Math.min(...plotted.map(d => +d[0].x));
+      range.last    = Math.max(...plotted.map(d => +d[d.length - 1].x));
+      range.viewMin = Math.max(range.first, range.last - 5 * 24 * 60 * 60 * 1000);
+    }
+    // Carry the count flat to the newest reading, so the line doesn't look cut off
+    // where the last beetle came through.
+    if (insectData.length && range.last > +insectData[insectData.length - 1].x)
+      insectData.push({ x: new Date(range.last), y: runningTotal });
 
-    makeInsectChart(insectData, allInsectRows, "reset-insects");
-    makeChart("chart-temp",     "Temperature (°F)", "220, 38, 38", tempData, "reset-temp",     "°F", "temp-stats");
-    makeChart("chart-humidity", "Humidity (%)",     "2, 132, 199", humData,  "reset-humidity", "%",  "hum-stats");
+    const fw = all.length ? all[all.length - 1].firmware_version : null;
+    const inView = plotted.length ? all.filter(r => +resolveTimestamp(r) >= range.viewMin).length : 0;
+    document.getElementById("page-subtitle").textContent =
+      [fw ? `Firmware ${fw}` : null, `${inView} readings in the last 5 days`].filter(Boolean).join(" · ");
+
+    makeInsectChart(insectData, allInsectRows, range, "reset-insects");
+    makeChart("chart-temp",     "Temperature (°F)", "220, 38, 38", tempData, range, "reset-temp",     "°F", "temp-stats");
+    makeChart("chart-humidity", "Humidity (%)",     "2, 132, 199", humData,  range, "reset-humidity", "%",  "hum-stats");
   })();
 </script>
 </body>
