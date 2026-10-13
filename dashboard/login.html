@@ -15,6 +15,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/auth-pages.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
   <script src="js/auth.js"></script>
@@ -23,13 +24,13 @@
 
 <main class="auth-wrap">
   <a class="wordmark" href="../index.html" aria-label="VerdanTech Solutions website">
-    <span class="wordmark-verdan">Verdan</span><span class="wordmark-tech">Tech</span>
-    <span class="wordmark-sub">SmartTrap Dashboard</span>
+    <img class="logo" src="../assets/img/verdantech-logo-black.svg" alt="" width="702" height="245">
+    <span class="wordmark-sub">TrapSense Dashboard</span>
   </a>
 
   <div class="auth-card">
     <h1 id="card-title">Sign in</h1>
-    <p class="auth-sub" id="card-sub">View live data from your SmartTrap network.</p>
+    <p class="auth-sub" id="card-sub">View live data from your TrapSense network.</p>
 
     <form id="signin-form">
       <label>Email <input type="email" id="email" autocomplete="email" required></label>
@@ -111,7 +112,7 @@
     document.getElementById("card-title").textContent  = resetMode ? "Reset your password" : "Sign in";
     document.getElementById("card-sub").textContent    = resetMode
       ? "Enter your email and we'll send you a link to choose a new password."
-      : "View live data from your SmartTrap network.";
+      : "View live data from your TrapSense network.";
     document.getElementById("mode-toggle").textContent = resetMode ? "Back to sign in" : "Forgot your password?";
     setStatus("");
   });

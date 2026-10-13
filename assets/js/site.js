@@ -16,7 +16,12 @@
   const current = location.pathname.split("/").pop() || "index.html";
   const currentAttr = href => (href === current ? ' aria-current="page"' : "");
 
-  const wordmark = `<a class="wordmark" href="index.html" aria-label="VerdanTech Solutions home"><span class="wordmark-verdan">Verdan</span><span class="wordmark-tech">Tech</span></a>`;
+  // The logo comes in white text (for dark backgrounds, preferred) and black text
+  // (for light ones). The header holds both and site.css shows whichever suits it:
+  // white over a dark hero photo, black once the header turns solid white.
+  const logo = (color, cls = "") =>
+    `<img class="logo ${cls}" src="assets/img/verdantech-logo-${color}.svg" alt="" width="702" height="245">`;
+  const wordmark = logos => `<a class="wordmark" href="index.html" aria-label="VerdanTech Solutions home">${logos}</a>`;
 
   // Photos not yet added to assets/img/ fail to load. Remove them so the .media
   // block shows its placeholder label instead of a broken-image icon.
@@ -30,7 +35,7 @@
     headerSlot.outerHTML = `
       <header class="site-header">
         <div class="container header-inner">
-          ${wordmark}
+          ${wordmark(logo("white", "logo-on-dark") + logo("black", "logo-on-light"))}
           <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
             <span class="sr-only">Menu</span><span class="nav-toggle-bar"></span>
           </button>
@@ -70,7 +75,7 @@
       toggle.focus();
     });
     // Resizing past the breakpoint reveals the full nav, so drop the open state.
-    window.matchMedia("(min-width: 1041px)").addEventListener("change", e => { if (e.matches) setNav(false); });
+    window.matchMedia("(min-width: 1261px)").addEventListener("change", e => { if (e.matches) setNav(false); });
 
     window.addEventListener("scroll", updateHeader, { passive: true });
     updateHeader();
@@ -86,7 +91,7 @@
         <div class="footer-card">
           <div class="footer-main">
             <div class="footer-brand">
-              ${wordmark}
+              ${wordmark(logo("white"))}
               <p class="footer-tagline">Smart pest monitoring for orchards</p>
             </div>
             <div class="footer-details">

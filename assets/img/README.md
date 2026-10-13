@@ -7,7 +7,7 @@ Pages look for these files. Until a file exists, its spot shows a plain block wi
 | `hero-orchard.jpg` | Home page hero. On laptops and desktops the page sizes and places it so the trap sits right of the text box, using where the trap is in this photo (the `--subject-*` values under `.hero-boxed` in `site.css`), so re-measure those if you swap it. Exported 2600px wide (about 590 KB) because large screens show it close to full size. | MO_03918 |
 | `hero-orchard-backdrop.jpg` | Soft blur behind the home hero photo, showing wherever the photo stops short of the screen's edge. Made from the leaves left of the trap, mirrored and heavily blurred, so remake it from any new hero photo. | MO_03918, left 35%, blurred |
 | `product-hero.jpg` | Our Product page hero (full width behind white text on the left, so the subject should sit right of centre). `style="--focus: 50% 36%"` on its `<img>` keeps the trap in the crop on wide screens. | MO_03944, left 62% of the frame |
-| `trap-field.jpg` | SmartTrap installed in an orchard (home page, product page) | MO_03919 |
+| `trap-field.jpg` | TrapSense installed in an orchard (home page, product page) | MO_03919 |
 | `gateway.jpg` | Field gateway (product page) | — |
 | `dashboard.png` | Dashboard screenshot (home page, product page) | — |
 | `team.jpg` | Team photo (About Us page) | — |
@@ -16,3 +16,7 @@ Pages look for these files. Until a file exists, its spot shows a plain block wi
 "Current photo" is the camera file name of the original, from the 2026-09-25 orchard shoot.
 
 Keep each photo under about 500 KB (export as JPG at ~80% quality) so pages load quickly.
+
+## Logos
+
+`verdantech-logo-white.svg` (white text, for dark backgrounds; the preferred one) and `verdantech-logo-black.svg` (black text, for light backgrounds) are the SVGs from `VDT-Documentation/VDT-Branding`, with the empty margin cropped off: only `width`, `height`, and `viewBox` on the `<svg>` tag changed, to `702`, `245`, and `30 214 702 245`. `../favicon.svg` is the leaf and squares from the same logo, without the text, on the footer's forest green.

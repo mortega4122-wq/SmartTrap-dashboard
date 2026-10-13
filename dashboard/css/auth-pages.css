@@ -3,7 +3,7 @@
 :root {
   --bg: #f4f6f1; --surface: #ffffff; --line: #dde2da;
   --primary: #1a7a3c; --primary-hover: #14612f; --accent: #3f8f2a;
-  --danger: #b91c1c; --text: #141a15; --muted: #5b655c;
+  --danger: #b91c1c; --text: #1c261d; --muted: #5b655c;
   --font-sans: 'Inter Tight', 'Helvetica Now Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
 }
@@ -20,13 +20,18 @@ body {
 
 .auth-wrap { width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
 
-.wordmark { text-decoration: none; text-align: center; font-size: 1.9rem; font-weight: 600; letter-spacing: -0.035em; line-height: 1; }
-.wordmark-verdan { color: var(--text); }
-.wordmark-tech   { color: var(--accent); }
+/* Black-text logo, since the page is light. 94px puts its "VerdanTech" at the old 1.9rem wordmark's size. */
+.wordmark { display: flex; flex-direction: column; align-items: center; text-decoration: none; }
+.wordmark > .logo { display: block; width: auto; height: 94px; max-width: 100%; }
 .wordmark-sub {
-  display: block; margin-top: 10px;
+  display: block; margin-top: 6px;
   font-family: var(--font-mono); font-size: 11px; font-weight: 500;
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+}
+/* Desktop: a larger logo (about the card's width) with more air above the label. */
+@media (min-width: 641px) {
+  .wordmark > .logo { height: 128px; }
+  .wordmark-sub { margin-top: 18px; }
 }
 
 .auth-card { width: 100%; padding: 36px 32px; background: var(--surface); border: 1px solid var(--line); }

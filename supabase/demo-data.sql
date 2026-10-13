@@ -1,4 +1,4 @@
--- SmartTrap dashboard: demo deployment for the demo login
+-- TrapSense dashboard: demo deployment for the demo login
 --
 -- Loads a simulated 10-trap orchard into one login's dashboard: temperature and
 -- humidity every 30 minutes, beetle detections, a rover that collects the data

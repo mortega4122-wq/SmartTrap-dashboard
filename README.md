@@ -1,12 +1,12 @@
-# VerdanTech Solutions — SmartTrap
+# VerdanTech Solutions — TrapSense
 
 - Website: https://mortega4122-wq.github.io/SmartTrap-dashboard/
 - Dashboard (login required): https://mortega4122-wq.github.io/SmartTrap-dashboard/dashboard/
 
 # Objective
-The overall goal of this project is to deploy and validate an autonomous SmartTrap Pest Monitoring Network for early detection, orchard-scale hotspot mapping, and decision support for Carpophilus truncatus in California almond orchards.
+The overall goal of this project is to deploy and validate an autonomous TrapSense Pest Monitoring Network for early detection, orchard-scale hotspot mapping, and decision support for Carpophilus truncatus in California almond orchards.
 
-The SmartTraps operate as distributed field nodes, while an autonomous robotic platform traverses the orchard and wirelessly collects data once within communication range. In this role, the robotic platform functions as an autonomous mobile Wi-Fi gateway for the SmartTrap network.
+The TrapSense traps operate as distributed field nodes, while an autonomous robotic platform traverses the orchard and wirelessly collects data once within communication range. In this role, the robotic platform functions as an autonomous mobile Wi-Fi gateway for the TrapSense network.
 
 # Repository layout
 | Path | Purpose |
@@ -17,7 +17,7 @@ The SmartTraps operate as distributed field nodes, while an autonomous robotic p
 | `assets/js/site.js` | Shared website header (including the Contact Us and Dashboard Login buttons) and footer |
 | `assets/img/` | Website photos; `assets/img/README.md` lists the file names each page expects |
 | `downloads/` | PDFs linked from the Documentation page |
-| `dashboard/` | SmartTrap dashboard pages, plus `login.html` and `set-password.html` |
+| `dashboard/` | TrapSense dashboard pages, plus `login.html` and `set-password.html` |
 | `dashboard/js/auth.js` | Supabase client, login check, and request headers used by every dashboard page |
 | `dashboard/layout.html` | Layout pane: spreads traps evenly inside the orchard boundary and hands you each point's coordinates for the field |
 | `dashboard/js/geo.js` | Metres projection, polygon area, and the trap layout generator. No Supabase, Leaflet, or DOM, so it can be tested on its own |

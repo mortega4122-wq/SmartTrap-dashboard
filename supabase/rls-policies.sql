@@ -1,4 +1,4 @@
--- SmartTrap dashboard: per-account data access (row-level security)
+-- TrapSense dashboard: per-account data access (row-level security)
 --
 -- Each dashboard login sees only its own trap nodes, their readings, its orchard
 -- boundary, and its rover track. Until this runs, anyone with the publishable key

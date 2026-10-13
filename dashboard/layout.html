@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Layout — SmartTrap</title>
+  <title>Layout — TrapSense</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
   <script src="js/auth.js"></script>
   <script>requireLogin();</script>
@@ -23,7 +23,7 @@
 <body class="app-fixed is-desktop-map">
 
 <header class="app-header">
-  <a class="wordmark" href="../index.html" title="VerdanTech website"><span>Verdan</span><span class="wordmark-tech">Tech</span></a>
+  <a class="wordmark" href="../index.html" title="VerdanTech website"><img class="logo" src="../assets/img/verdantech-logo-black.svg" alt="VerdanTech Solutions" width="702" height="245"></a>
   <nav class="app-nav" aria-label="Dashboard">
     <a href="index.html">Map</a>
     <a href="orchard-setup.html">Orchard setup</a>
@@ -502,7 +502,7 @@
       `    <desc>${esc(p.role)} · ${esc(p.nodeId)}</desc>\n` +
       `    <type>${esc(p.role)}</type>\n  </wpt>`).join("\n");
     download("trap-layout.gpx", "application/gpx+xml",
-      `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="SmartTrap" xmlns="http://www.topografix.com/GPX/1/1">\n${wpts}\n</gpx>\n`);
+      `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="TrapSense" xmlns="http://www.topografix.com/GPX/1/1">\n${wpts}\n</gpx>\n`);
   }
 
   async function copyAll() {

@@ -1,4 +1,4 @@
--- SmartTrap dashboard: planned trap layouts (the Layout pane)
+-- TrapSense dashboard: planned trap layouts (the Layout pane)
 --
 -- The Layout pane generates an even grid of trap positions inside the orchard
 -- boundary, so a 20+ node block goes in uniformly instead of by eye. This table
