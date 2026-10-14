@@ -20,12 +20,12 @@
 <body class="app-fixed">
 
 <header class="app-header">
-  <a class="wordmark" href="../index.html" title="VerdanTech website"><img class="logo" src="../assets/img/verdantech-logo-black.svg" alt="VerdanTech Solutions" width="702" height="245"></a>
+  <a class="wordmark" href="../" title="VerdanTech website"><img class="logo" src="../assets/img/verdantech-logo-black.svg" alt="VerdanTech Solutions" width="702" height="245"></a>
   <nav class="app-nav" aria-label="Dashboard">
-    <a href="index.html">Map</a>
-    <a href="orchard-setup.html" aria-current="page">Orchard setup</a>
-    <a href="layout.html">Layout</a>
-    <a href="scan.html">Add trap</a>
+    <a href="./">Map</a>
+    <a href="orchard-setup" aria-current="page">Orchard setup</a>
+    <a href="layout">Layout</a>
+    <a href="scan">Add trap</a>
   </nav>
   <div class="app-header-end">
     <button class="btn btn-outline btn-sm" type="button" onclick="signOut()">Sign out</button>
@@ -41,7 +41,7 @@
   <button class="btn btn-outline btn-sm" type="button" id="btn-radius" aria-pressed="true" onclick="toggleRadius()">1-mile radius</button>
   <span class="toolbar-divider"></span>
   <span class="toolbar-status" id="status" role="status"></span>
-  <a class="btn btn-outline btn-sm" id="next-step" href="layout.html" hidden>Plan trap layout →</a>
+  <a class="btn btn-outline btn-sm" id="next-step" href="layout" hidden>Plan trap layout →</a>
   <button class="btn btn-primary btn-sm toolbar-end" type="button" id="btn-save" onclick="saveBoundary()" disabled>Save boundary</button>
 </div>
 
@@ -208,7 +208,7 @@
       }).addTo(radiusGroup);
 
       L.marker(coords, { icon: trapPinIcon(trapNumber(id, i + 1)), zIndexOffset: 1000 }).addTo(nodeGroup)
-        .bindPopup(`<div class="pop"><div class="pop-title">${esc(id)}</div><dl><dt>Lat</dt><dd>${coords[0].toFixed(5)}</dd><dt>Lng</dt><dd>${coords[1].toFixed(5)}</dd></dl><a class="pop-link" href="detail.html?node=${encodeURIComponent(id)}">Open trap</a></div>`);
+        .bindPopup(`<div class="pop"><div class="pop-title">${esc(id)}</div><dl><dt>Lat</dt><dd>${coords[0].toFixed(5)}</dd><dt>Lng</dt><dd>${coords[1].toFixed(5)}</dd></dl><a class="pop-link" href="detail?node=${encodeURIComponent(id)}">Open trap</a></div>`);
     });
 
     if (entries.length === 1) map.setView(entries[0][1], 15);

@@ -10,7 +10,7 @@
 
   <script>
     if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-      window.location.replace("index-mobile.html" + location.search);
+      window.location.replace("index-mobile" + location.search);
     }
   </script>
 
@@ -27,12 +27,12 @@
 <body class="app-fixed is-desktop-map">
 
 <header class="app-header">
-  <a class="wordmark" href="../index.html" title="VerdanTech website"><img class="logo" src="../assets/img/verdantech-logo-black.svg" alt="VerdanTech Solutions" width="702" height="245"></a>
+  <a class="wordmark" href="../" title="VerdanTech website"><img class="logo" src="../assets/img/verdantech-logo-black.svg" alt="VerdanTech Solutions" width="702" height="245"></a>
   <nav class="app-nav" aria-label="Dashboard">
-    <a href="index.html" aria-current="page">Map</a>
-    <a href="orchard-setup.html">Orchard setup</a>
-    <a href="layout.html">Layout</a>
-    <a href="scan.html">Add trap</a>
+    <a href="./" aria-current="page">Map</a>
+    <a href="orchard-setup">Orchard setup</a>
+    <a href="layout">Layout</a>
+    <a href="scan">Add trap</a>
   </nav>
   <div class="app-header-end">
     <span class="app-status" id="rover-status">Loading…</span>
@@ -113,7 +113,7 @@
     document.getElementById("trap-count").textContent = traps.length;
 
     if (!traps.length) {
-      list.innerHTML = `<p class="list-message">No traps yet. <a href="scan.html">Add a trap</a> by scanning the QR code on it.</p>`;
+      list.innerHTML = `<p class="list-message">No traps yet. <a href="scan">Add a trap</a> by scanning the QR code on it.</p>`;
       return;
     }
     list.innerHTML = traps.map(trapCardHTML).join("");

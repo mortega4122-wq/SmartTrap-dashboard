@@ -5,15 +5,20 @@
 // transparent until the visitor scrolls. Links are relative because GitHub
 // Pages serves the site under /SmartTrap-dashboard/.
 (function () {
+  // GitHub Pages serves about.html at /about, so links leave off ".html". Old links
+  // and bookmarks still arrive at /about.html or /index.html; show the clean address.
+  const cleanPath = location.pathname.replace(/\/index\.html$/, "/").replace(/\.html$/, "");
+  if (cleanPath !== location.pathname) history.replaceState(null, "", cleanPath + location.search + location.hash);
+
   const NAV = [
-    { href: "about.html",        label: "About Us" },
-    { href: "product.html",      label: "Our Product" },
-    { href: "case-studies.html", label: "Case Studies" },
-    { href: "docs.html",         label: "Documentation" },
+    { href: "about",        label: "About Us" },
+    { href: "product",      label: "Our Product" },
+    { href: "case-studies", label: "Case Studies" },
+    { href: "docs",         label: "Documentation" },
   ];
-  const CONTACT_URL   = "contact.html";
-  const DASHBOARD_URL = "dashboard/index.html";
-  const current = location.pathname.split("/").pop() || "index.html";
+  const CONTACT_URL   = "contact";
+  const DASHBOARD_URL = "dashboard/";
+  const current = cleanPath.split("/").pop();
   const currentAttr = href => (href === current ? ' aria-current="page"' : "");
 
   // The logo comes in white text (for dark backgrounds, preferred) and black text
@@ -21,7 +26,7 @@
   // white over a dark hero photo, black once the header turns solid white.
   const logo = (color, cls = "") =>
     `<img class="logo ${cls}" src="assets/img/verdantech-logo-${color}.svg" alt="" width="702" height="245">`;
-  const wordmark = logos => `<a class="wordmark" href="index.html" aria-label="VerdanTech Solutions home">${logos}</a>`;
+  const wordmark = logos => `<a class="wordmark" href="./" aria-label="VerdanTech Solutions home">${logos}</a>`;
 
   // Photos not yet added to assets/img/ fail to load. Remove them so the .media
   // block shows its placeholder label instead of a broken-image icon.

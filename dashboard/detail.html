@@ -22,12 +22,12 @@
 <body>
 
 <header class="app-header">
-  <a class="wordmark" href="../index.html" title="VerdanTech website"><img class="logo" src="../assets/img/verdantech-logo-black.svg" alt="VerdanTech Solutions" width="702" height="245"></a>
+  <a class="wordmark" href="../" title="VerdanTech website"><img class="logo" src="../assets/img/verdantech-logo-black.svg" alt="VerdanTech Solutions" width="702" height="245"></a>
   <nav class="app-nav" aria-label="Dashboard">
-    <a href="index.html">Map</a>
-    <a href="orchard-setup.html">Orchard setup</a>
-    <a href="layout.html">Layout</a>
-    <a href="scan.html">Add trap</a>
+    <a href="./">Map</a>
+    <a href="orchard-setup">Orchard setup</a>
+    <a href="layout">Layout</a>
+    <a href="scan">Add trap</a>
   </nav>
   <div class="app-header-end">
     <button class="btn btn-outline btn-sm" type="button" onclick="signOut()">Sign out</button>
@@ -35,7 +35,7 @@
 </header>
 
 <main class="page">
-  <nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">All traps</a><span aria-hidden="true">/</span><span aria-current="page" id="crumb-node-id">—</span></nav>
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="./">All traps</a><span aria-hidden="true">/</span><span aria-current="page" id="crumb-node-id">—</span></nav>
   <h1 class="page-title is-mono" id="page-node-id">—</h1>
   <p class="loading-line" id="loading">Loading trap…</p>
 
@@ -447,7 +447,7 @@
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/node_locations?node_id=eq.${encodeURIComponent(nodeId)}`,
         { method: "DELETE", headers: await authHeaders() });
-      if (res.ok) { window.location.href = "index.html"; return; }
+      if (res.ok) { window.location.href = "./"; return; }
       alert("Couldn't remove the trap (" + res.status + ").");
     } catch (e) {
       alert("Network error: " + e.message);

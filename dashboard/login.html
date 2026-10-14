@@ -9,7 +9,7 @@
     // Invite and password-reset emails land on the Site URL (this page) with tokens
     // or an error in the URL hash. Hand those off to set-password.html.
     if (/[#&](type=(invite|recovery)|error_code=)/.test(location.hash)) {
-      location.replace("set-password.html" + location.hash);
+      location.replace("set-password" + location.hash);
     }
   </script>
 
@@ -23,7 +23,7 @@
 <body>
 
 <main class="auth-wrap">
-  <a class="wordmark" href="../index.html" aria-label="VerdanTech Solutions website">
+  <a class="wordmark" href="../" aria-label="VerdanTech Solutions website">
     <img class="logo" src="../assets/img/verdantech-logo-black.svg" alt="" width="702" height="245">
     <span class="wordmark-sub">TrapSense Dashboard</span>
   </a>
@@ -48,13 +48,14 @@
   </div>
 
   <p class="auth-foot">Accounts are invite-only. Contact VerdanTech for access.</p>
-  <a class="auth-back" href="../index.html">← Back to the VerdanTech website</a>
+  <a class="auth-back" href="../">← Back to the VerdanTech website</a>
 </main>
 
 <script>
-  // Only return to another dashboard page (e.g. "detail.html?node=trap_node_04"), never an outside URL.
+  // Only return to another dashboard page (e.g. "detail?node=trap_node_04", or "./" for
+  // the map), never an outside URL. Older links may still name the page with ".html".
   const nextParam = new URLSearchParams(location.search).get("next") || "";
-  const next = /^[\w-]+\.html(\?[^#]*)?$/.test(nextParam) ? nextParam : "index.html";
+  const next = /^(\.\/|[\w-]+(\.html)?)(\?[^#]*)?$/.test(nextParam) ? nextParam : "./";
 
   const statusEl = document.getElementById("status");
   function setStatus(text, type = "") {
@@ -95,6 +96,7 @@
 
     const { error } = await sb.auth.resetPasswordForEmail(
       document.getElementById("reset-email").value.trim(),
+      // Keeps ".html" to match the Redirect URL allowed in Supabase (see README).
       { redirectTo: new URL("set-password.html", location.href).href }
     );
 

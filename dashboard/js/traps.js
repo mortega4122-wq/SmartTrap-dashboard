@@ -239,7 +239,7 @@ function trapCardHTML(t) {
     t.rssi !== null ? `<span>signal ${esc(String(t.rssi).replace("-", "−"))} dBm</span>` : ""
   ].join("");
   return `
-    <a class="trap-card" href="detail.html?node=${encodeURIComponent(t.id)}" data-trap="${esc(t.id)}">
+    <a class="trap-card" href="detail?node=${encodeURIComponent(t.id)}" data-trap="${esc(t.id)}">
       <div class="trap-card-top"><span class="trap-id">${esc(t.id)}</span>${statusHTML(t.status)}</div>
       ${t.status.detail ? `<div class="trap-card-sub">${esc(t.status.detail)}</div>` : ""}
       <div class="trap-card-main">
@@ -297,7 +297,7 @@ function trapPopupHTML(t) {
         ${row("Temp", t.tempF === null ? "—" : `${t.tempF.toFixed(1)} °F`)}
         ${row("Humidity", t.humidity === null ? "—" : `${t.humidity.toFixed(1)} %`)}
       </dl>
-      <a class="pop-link" href="detail.html?node=${encodeURIComponent(t.id)}">Open trap</a>
+      <a class="pop-link" href="detail?node=${encodeURIComponent(t.id)}">Open trap</a>
     </div>`;
 }
 

@@ -18,12 +18,12 @@
 <body>
 
 <header class="app-header">
-  <a class="wordmark" href="../index.html" title="VerdanTech website"><img class="logo" src="../assets/img/verdantech-logo-black.svg" alt="VerdanTech Solutions" width="702" height="245"></a>
+  <a class="wordmark" href="../" title="VerdanTech website"><img class="logo" src="../assets/img/verdantech-logo-black.svg" alt="VerdanTech Solutions" width="702" height="245"></a>
   <nav class="app-nav" aria-label="Dashboard">
-    <a href="index.html">Map</a>
-    <a href="orchard-setup.html">Orchard setup</a>
-    <a href="layout.html">Layout</a>
-    <a href="scan.html" aria-current="page">Add trap</a>
+    <a href="./">Map</a>
+    <a href="orchard-setup">Orchard setup</a>
+    <a href="layout">Layout</a>
+    <a href="scan" aria-current="page">Add trap</a>
   </nav>
   <div class="app-header-end">
     <button class="btn btn-outline btn-sm" type="button" onclick="signOut()">Sign out</button>
@@ -220,8 +220,8 @@
         showStatus("success", "Trap added",
           `<strong>${esc(nodeId)}</strong> is on the dashboard at ${capturedLat.toFixed(6)}, ${capturedLng.toFixed(6)}, within ${capturedAcc ? capturedAcc.toFixed(1) : "?"} m.`,
           [
-            { href: "index.html", label: "See it on the map", cls: "btn-primary" },
-            { href: "scan.html",  label: "Add another",       cls: "btn-outline" }
+            { href: "./",   label: "See it on the map", cls: "btn-primary" },
+            { href: "scan", label: "Add another",       cls: "btn-outline" }
           ]);
         submit.textContent = "Saved";
       } else if (res.status === 409) {
